@@ -1,2 +1,2 @@
 # TestPlatformAnalysis
-Analysis framework for LGAD data obtained from the KU test platform system
+Analysis framework for handling LGAD data obtained from the KU test platform system
