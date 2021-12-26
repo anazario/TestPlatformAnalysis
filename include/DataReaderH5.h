@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include "H5Cpp.h"
+#include "PulseTools.h"
 
 using namespace std;
 using namespace H5;
@@ -13,11 +14,16 @@ using namespace H5;
 class DataReaderH5{
 
  public:
-  DataReaderH5();
+  DataReaderH5(string fileName, const int channel);
   virtual ~DataReaderH5();
 
   //get data from single channel given filename
   void GetChData(string fileName, const int channel);
+  float GetXpos();
+  float GetYpos();
+  float GetRate();
+  float** GetWaveForms();
+  float** GetTimeArr();
   void PrintInfo();
 
 private:
@@ -41,8 +47,8 @@ private:
   DataSet *vertScaleDs_;
 
   //arrays for storing data from datasets
-  int x_[1];
-  int y_[1];
+  float x_[1];
+  float y_[1];
   float rate_[1];
   int samples_[N_TRIG][SAMPLE_SIZE];
   float horizOffset_[N_TRIG];
