@@ -9,60 +9,39 @@ DataReaderH5::DataReaderH5(string filePath, const int channel){
   GetChData(filePath,channel);
 };
 
-DataReaderH5::~DataReaderH5(){
-  delete xDs_;
-  delete yDs_;
-  delete rateDs_;
-  delete samplesDs_;
-  delete horizOffsetDs_;
-  delete horizScaleDs_;
-  delete trigOffsetDs_;
-  delete trigTimeDs_;
-  delete vertOffsetDs_;
-  delete vertScaleDs_;
-  file_->close();
-  delete file_;
-
-  delete samples_;
-  delete horizOffset_;
-  delete horizScale_;
-  delete trigOffset_;
-  delete trigTime_;
-  delete vertOffset_;
-  delete vertScale_;
-}
+DataReaderH5::~DataReaderH5(){}
 
 void DataReaderH5::GetChData(string filePath, const int channel){
   
   channel_ = channel;
 
-  InitMembers();
-  
-  file_ = new H5File(filePath,H5F_ACC_RDONLY);
+  H5File file(filePath,H5F_ACC_RDONLY);
 
   //create datasets to access data in file
-  xDs_           = new DataSet(file_->openDataSet("x"));
-  yDs_           = new DataSet(file_->openDataSet("y"));
-  rateDs_        = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_rate").c_str()));
-  samplesDs_     = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_samples").c_str()));
-  horizOffsetDs_ = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_horiz_offset").c_str()));
-  horizScaleDs_  = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_horiz_scale").c_str()));
-  trigOffsetDs_  = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_trig_offset").c_str()));
-  trigTimeDs_    = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_trig_time").c_str()));
-  vertOffsetDs_  = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_vert_offset").c_str()));
-  vertScaleDs_   = new DataSet(file_->openDataSet(("ch"+to_string(channel_)+"_vert_scale").c_str()));
+  DataSet xDs(file.openDataSet("x"));
+  DataSet yDs(file.openDataSet("y"));
+  DataSet rateDs(file.openDataSet(("ch"+to_string(channel_)+"_rate").c_str()));
+  DataSet samplesDs(file.openDataSet(("ch"+to_string(channel_)+"_samples").c_str()));
+  DataSet horizOffsetDs(file.openDataSet(("ch"+to_string(channel_)+"_horiz_offset").c_str()));
+  DataSet horizScaleDs(file.openDataSet(("ch"+to_string(channel_)+"_horiz_scale").c_str()));
+  DataSet trigOffsetDs(file.openDataSet(("ch"+to_string(channel_)+"_trig_offset").c_str()));
+  DataSet trigTimeDs(file.openDataSet(("ch"+to_string(channel_)+"_trig_time").c_str()));
+  DataSet vertOffsetDs(file.openDataSet(("ch"+to_string(channel_)+"_vert_offset").c_str()));
+  DataSet vertScaleDs(file.openDataSet(("ch"+to_string(channel_)+"_vert_scale").c_str()));
 
   //read data from dataset
-  xDs_->read(x_,PredType::NATIVE_FLOAT);
-  yDs_->read(y_,PredType::NATIVE_FLOAT);
-  rateDs_->read(rate_,PredType::NATIVE_FLOAT);
-  samplesDs_->read(*samples_,PredType::NATIVE_INT);
-  horizOffsetDs_->read(horizOffset_,PredType::NATIVE_FLOAT);
-  horizScaleDs_->read(horizScale_,PredType::NATIVE_FLOAT);
-  trigOffsetDs_->read(trigOffset_,PredType::NATIVE_FLOAT);
-  trigTimeDs_->read(trigTime_,PredType::NATIVE_FLOAT);
-  vertOffsetDs_->read(vertOffset_,PredType::NATIVE_FLOAT);
-  vertScaleDs_->read(vertScale_,PredType::NATIVE_FLOAT);
+  xDs.read(x_,PredType::NATIVE_FLOAT);
+  yDs.read(y_,PredType::NATIVE_FLOAT);
+  rateDs.read(rate_,PredType::NATIVE_FLOAT);
+  samplesDs.read(samples_,PredType::NATIVE_INT);
+  horizOffsetDs.read(horizOffset_,PredType::NATIVE_FLOAT);
+  horizScaleDs.read(horizScale_,PredType::NATIVE_FLOAT);
+  trigOffsetDs.read(trigOffset_,PredType::NATIVE_FLOAT);
+  trigTimeDs.read(trigTime_,PredType::NATIVE_FLOAT);
+  vertOffsetDs.read(vertOffset_,PredType::NATIVE_FLOAT);
+  vertScaleDs.read(vertScale_,PredType::NATIVE_FLOAT);
+
+  file.close();
 }
 
 int DataReaderH5::GetNtrig(){
@@ -87,32 +66,35 @@ float DataReaderH5::GetRate(){
   return rate_[0];
 }
 
-float** DataReaderH5::GetWaveForms(){
+vector<vector<float>> DataReaderH5::GetWaveForms(){
 
-  float **waveForms = new float*[nTrig_];
-  for(int i = 0; i < nTrig_; i++){
-    waveForms[i] = new float[SAMPLE_SIZE]; 
-    for(int j = 0; j < SAMPLE_SIZE; j++){
-      waveForms[i][j] = -vertOffset_[i]+samples_[i][j]*vertScale_[i];
-    }
-  }
+  vector<vector<float>> waveForms;
+  vector<float> tempVec;
   
+  for(int i = 0; i < nTrig_; i++){
+    for(int j = 0; j < SAMPLE_SIZE; j++){
+      tempVec.push_back(vertOffset_[i]+samples_[i][j]*vertScale_[i]);
+    }
+    waveForms.push_back(tempVec);
+    tempVec.clear();
+  }
+
   return waveForms;
 }
 
-float** DataReaderH5::GetTimeArr(){
+vector<vector<float>> DataReaderH5::GetTimeArr(){
 
   float tMin = -999.;
   float	tMax = -999.;
-  float **time = new float*[nTrig_];
-
+  vector<vector<float>> time;
+  vector<float> t;
+  
   for(int i = 0; i < nTrig_; i++){
-    time[i] = new float[SAMPLE_SIZE];
     tMin = trigOffset_[i]*1e9;
     tMax = (horizScale_[i]*(SAMPLE_SIZE-1)-trigOffset_[i])*1e9;
-    time[i] = PulseTools::LinSpace(tMin,tMax,1./SAMPLE_SIZE);
+    t = PulseTools::LinSpaceVec(tMin,tMax,SAMPLE_SIZE);
+    time.push_back(t);
   }
-  
   return time;
 }
 
@@ -137,19 +119,7 @@ void DataReaderH5::PrintInfo(){
   cout << endl;
 }
 
-void DataReaderH5::InitMembers(){
-  samples_ = new int*[nTrig_];
-  for (int i = 0; i < nTrig_; i++)
-    samples_[i] = new int[SAMPLE_SIZE];
-  
-  horizOffset_ = new float[nTrig_];
-  horizScale_ = new float[nTrig_];
-  trigOffset_ = new float[nTrig_];
-  trigTime_ = new float[nTrig_];
-  vertOffset_ = new float[nTrig_];
-  vertScale_ = new float[nTrig_];
-}
-
+//private methods
 void DataReaderH5::GetScanInfo(){
 
   float value;
