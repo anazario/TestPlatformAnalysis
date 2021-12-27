@@ -72,7 +72,6 @@ private:
   float	yMax_;
   
   //private methods
-  void InitMembers();
   void GetScanInfo();
   void SaveDirInfo(string inPath);
   void SplitFolder(string& fullPath, string& innerMostName);
