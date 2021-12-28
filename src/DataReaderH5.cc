@@ -73,7 +73,7 @@ vector<vector<float>> DataReaderH5::GetWaveForms(){
   
   for(int i = 0; i < nTrig_; i++){
     for(int j = 0; j < SAMPLE_SIZE; j++){
-      tempVec.push_back(vertOffset_[i]+samples_[i][j]*vertScale_[i]);
+      tempVec.push_back(-vertOffset_[i]+samples_[i][j]*vertScale_[i]);
     }
     waveForms.push_back(tempVec);
     tempVec.clear();

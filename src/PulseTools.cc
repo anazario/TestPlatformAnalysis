@@ -18,8 +18,8 @@ int PulseTools::FindMinAbsolute(float* sample, int size){
   
   int index_min = 0;
   
-  for (int i = 100 ; i < size-2; i++){
-    if (sample[i]<xmin && sample[i+1] < 0.5*sample[i]){
+  for (int i = 0 ; i < size; i++){
+    if (sample[i]<xmin){// && sample[i+1] < 0.5*sample[i]){
       xmin = sample[i]; //minimum
       index_min = i; //index number of minimum
     }
@@ -137,7 +137,7 @@ float* PulseTools::GetMeanArr(vector<TH1F> pulse_hist){
 //Input: 1.Pulse sample to be interpolated (float*), 2.Total elements in the sample 
 //(int) and 3.Point in time to be interpolated from sample (float). 
 //Output: Amplitude value (float) of the interpolated sample at time t (arg 3.).
-//Uses the Shannon-Nyquist sampling theorem.
+//Uses the Nyquist-Shannon sampling theorem.
 /**********************************************************************************/
 float PulseTools::InterpolateFunc(float* sample, int sample_size, float time){
   
