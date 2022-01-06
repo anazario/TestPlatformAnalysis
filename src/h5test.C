@@ -1,6 +1,7 @@
 #include "DataReaderH5.h"
 #include "TGraph.h"
 #include "TCanvas.h"
+#include "TStyle.h"
 #include <fstream>
 #include <map>
 
@@ -25,12 +26,16 @@ int main(void){
   vector<float> xVec = time[s];
   vector<float> yVec = samples[s];
 
+  gStyle->SetOptStat(0);
+  gStyle->SetOptFit(11111111);
   TCanvas *cv = new TCanvas("cv","cv",600,800);
+  cv->SetLeftMargin(0.15);
   TGraph *g = new TGraph(SAMPLE_SIZE,&xVec[0],&yVec[0]);
   g->SetMarkerStyle(8);
   g->SetMarkerSize(0.5);
+  g->SetTitle(("Pulse "+to_string(s)).c_str());
   g->GetXaxis()->SetTitle("time [ns]");
-  g->GetYaxis()->SetTitle("Amplitude [mV]");
+  g->GetYaxis()->SetTitle("Amplitude [V]");
 
   gPad->SetGrid(1, 1); gPad->Update();
   g->Draw("AP");
