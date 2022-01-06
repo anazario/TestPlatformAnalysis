@@ -41,7 +41,7 @@ void PulseShape::GetErrors(vector<float>& low_err, vector<float>& high_err, floa
 
 void PulseShape::GetMaxT0andAmp0(float* sample, float& t0, float& amp0){
 
-  int nSteps = 5000;
+  int nSteps = 1000;
 
   float approx_t0 = float(PulseTools::FindMinAbsolute(sample,SAMPLE_SIZE))/10.;
   float xmin = approx_t0 - 1;
@@ -68,11 +68,17 @@ void PulseShape::GetMaxT0Amp0Vec(){
 
   float t0, amp0;
 
+  cout << "Beginning processing of " << sampleSize_ << " pulses:" << endl;
   for(int i = 0; i < sampleSize_; i++){
+
+    fprintf(stdout, "\r  Processed pulses: %5d of %5d ", i, sampleSize_);
+    fflush(stdout);
+    
     GetMaxT0andAmp0(&samples_[i][0],t0,amp0);
     tPeak_.push_back(t0);
     maxAmp_.push_back(amp0);
   }
+  cout << endl;
 }
 
 float* PulseShape::MakeInterpolation(float* sample, float t0, float amp_peak, float step_size){
@@ -85,11 +91,6 @@ float* PulseShape::MakeInterpolation(float* sample, float t0, float amp_peak, fl
   if(LE_ratio != 1.0)
     cout << LE_ratio << endl;
   LE_ratio = 1.;
-
-  //cout << t0 << " " << t0_amp << " " << amp_peak << " " << (t0_amp/amp_peak) << endl;
-
-  //if(LE_ratio != 0.2)
-  //cout << "ratio: " << LE_ratio << endl;
 
   int nLeft, nRight;
   float size = float(xmax-xmin)/step_size;
@@ -107,13 +108,15 @@ float* PulseShape::MakeInterpolation(float* sample, float t0, float amp_peak, fl
   float arr_size = float(xmax-xmin)/step_size + 1;
   float* pulse = new float[int(arr_size)];
 
-  for(int i = -nLeft; i <= nRight; i++)
+  for(int i = -nLeft; i <= nRight; i++){
     pulse[i+nLeft] = (-PulseTools::InterpolateFunc(sample, SAMPLE_SIZE, t0 + float(i)*step_size)/amp_peak);
-
+    //cout << "amp(" << t0 + float(i)*step_size << ") = " << pulse[i+nLeft] << endl;
+  }
   return pulse;
 }
 
-float* PulseShape::GetMeanPulse(vector<float> t0, vector<float> max_amp, float step_size, std::function<float*(float*,float,float,float)> PulseType){
+float* PulseShape::GetMeanPulse(vector<float> t0, vector<float> max_amp, float step_size,
+				std::function<float*(float*,float,float,float)> PulseType){
 
   if(histVec_.size()>0)
     histVec_.clear();
@@ -125,12 +128,9 @@ float* PulseShape::GetMeanPulse(vector<float> t0, vector<float> max_amp, float s
 
   for(int i = 0; i < samples_.size(); i++){
     processed_sample = PulseType(&samples_[i][0],t0[i],max_amp[i],step_size);
-      
-    for(int j = 0; j < vec_size; j++){
+    
+    for(int j = 0; j < vec_size; j++)
       histVec_[j].Fill(processed_sample[j]);
-      //if(processed_sample[j] > 1.)
-	//cout << processed_sample[j] << endl;
-    }
   }
   delete [] processed_sample;
   return PulseTools::GetMeanArr(histVec_);
@@ -170,6 +170,35 @@ void PulseShape::PlotHists(){
     cout << "Histogram vector is empty!" << endl;
     return;
   }
+}
+
+void PulseShape::PlotSinglePulse(int index){
+
+  int total = int(2./stepSize_)+1;
+  
+  float *xAxis = PulseTools::LinSpace(-1.,1.,stepSize_);
+  float *processedSample = MakeInterpolation(&samples_[index][0],tPeak_[index],maxAmp_[index],stepSize_);
+
+  cout << "time loc: " << tPeak_[index] << " and amplitude : " << maxAmp_[index] << endl;
+  
+  TCanvas *cv = new TCanvas("cv","cv",600,800);
+  TGraph *g = new TGraph(total,xAxis,processedSample);
+
+  gStyle->SetOptTitle(kFALSE);
+
+  g->Draw();
+  g->GetXaxis()->SetTitle("time [ns]");
+  g->GetYaxis()->SetTitle("Amplitude [mV]");
+  CMSmark("");
+  gPad->SetGrid(1, 1); gPad->Update();
+  cv->SaveAs(("Pulse_"+to_string(index)+".pdf").c_str());
+
+  cv->Close();
+  
+  delete [] xAxis;
+  delete [] processedSample;
+  delete cv;
+  delete g;
 }
 
 void PulseShape::PlotAllPulses(){

@@ -17,11 +17,11 @@ using namespace H5;
 class DataReaderH5{
 
  public:
-  DataReaderH5(string fileName, const int channel);
+  DataReaderH5(const string fileName, const int channel);
   virtual ~DataReaderH5();
 
   //get data from single channel given filename
-  void GetChData(string fileName, const int channel);
+  void GetChData(const string fileName, const int channel);
 
   //Access data in data reader object
   int GetNtrig();

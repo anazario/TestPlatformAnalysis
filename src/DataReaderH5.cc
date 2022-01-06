@@ -3,7 +3,7 @@
 using namespace std;
 using namespace H5;
 
-DataReaderH5::DataReaderH5(string filePath, const int channel){
+DataReaderH5::DataReaderH5(const string filePath, const int channel){
   SaveDirInfo(filePath);
   GetScanInfo();
   GetChData(filePath,channel);
@@ -11,7 +11,7 @@ DataReaderH5::DataReaderH5(string filePath, const int channel){
 
 DataReaderH5::~DataReaderH5(){}
 
-void DataReaderH5::GetChData(string filePath, const int channel){
+void DataReaderH5::GetChData(const string filePath, const int channel){
   
   channel_ = channel;
 

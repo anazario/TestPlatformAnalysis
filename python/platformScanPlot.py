@@ -5,14 +5,17 @@ import seaborn as sns
 
 def main():
     fname = option_dict['fname']
-    plot_2x2_heatmap(fname)
-    plot_single(fname,2)
+    if options.plotAll:
+        plot_2x2_heatmap(fname)
+        for ch in range(4):
+            plot_single(fname,ch)
+    else:
+        plot_single(fname,options.ch)
 
 def format_data(data,channel):
     x = data[:,1].round(2)
     y = data[:,0].round(2)
     ch = data[:,channel+1]
-    #ch = [1./c if c > 0 else 0 for c in ch]
     
     dfch = pd.DataFrame.from_dict(np.array([x,y,ch]).T)
     dfch.columns = ['x','y','z']
@@ -28,7 +31,6 @@ def make_heatmap(pvt,axis,channel):
     axs.set_title(f'ch{channel}')
     axs.set_xlabel('y [mm]')
     axs.set_ylabel('x [mm]')
-    #axs.invert_yaxis()
 
 def plot_single(fname,channel):
     data = np.loadtxt(fname)
@@ -74,8 +76,17 @@ if __name__ == "__main__":
     parser = optparse.OptionParser(usage, version="%prog 0.1.0")
     parser.add_option("-f", "--file", type="str",
                       dest="fname",
-                      help="Specify data input file",
-                      default="scan11.txt")
+                      help="Specify scan data input file",
+                      default="data/scan11.txt")
+    parser.add_option("-s", "--singleCh", type="int",
+                      dest="ch",
+                      help="Plot single channel",
+                      default=1)
+    parser.add_option("-a", "--all",
+                      action="store_true",
+                      dest="plotAll",
+                      help="Plot single channel",
+                      default=False)
     (options, args) = parser.parse_args()
     option_dict = vars(options)
 

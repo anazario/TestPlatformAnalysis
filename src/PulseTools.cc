@@ -24,6 +24,7 @@ int PulseTools::FindMinAbsolute(float* sample, int size){
       index_min = i; //index number of minimum
     }
   }
+  //cout << "min value: " << xmin << " at index : " << index_min << endl;
   return index_min;
 }
 
@@ -141,9 +142,9 @@ float* PulseTools::GetMeanArr(vector<TH1F> pulse_hist){
 /**********************************************************************************/
 float PulseTools::InterpolateFunc(float* sample, int sample_size, float time){
   
-  float frequency = 5e9;
-  float omega_c = 2*M_PI*frequency;
-  float sampling_time = 1/(2*frequency);
+  float frequency = 10./(2e-9);
+  float omega_c = 2.*M_PI*frequency;
+  float sampling_time = 1./(2*frequency);
   
   time *= (1e-9);
   

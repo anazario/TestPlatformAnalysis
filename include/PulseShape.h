@@ -43,6 +43,8 @@ class PulseShape{
   static float* MakeInterpolation(float* sample, float t0, float amp_peak, float step_size);
   static float* GetPulseCDF(float* sample, float t0, float max_amp, float step_size);
 
+  void PlotSinglePulse(int index);
+  
   void PlotAllPulses();
   void PlotAllCDFs();
   void PlotPulseMean();
