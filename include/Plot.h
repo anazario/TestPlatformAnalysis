@@ -3,6 +3,7 @@
 #include <TH1D.h>
 #include <TStyle.h>
 #include <TCanvas.h>
+#include <TColor.h>
 
 
 inline void CMSmark(TString plotTitle){
@@ -11,45 +12,33 @@ inline void CMSmark(TString plotTitle){
   l.SetNDC();
   l.SetTextSize(0.035);
   l.SetTextFont(42);
-  // l.DrawLatex(0.17,0.855,g_PlotTitle.c_str());                                                                                                         
   l.DrawLatex(0.51,0.91,plotTitle);
   l.SetTextSize(0.04);
   l.SetTextFont(42);
   l.DrawLatex(0.11,0.91,"#bf{CMS} #it{Preliminary}");
 }
-/*
-void SetPlotPar(TH1D* hist, TString xname, TString yname){
 
-  hist->GetXaxis()->CenterTitle();
-  hist->GetXaxis()->SetTitleFont(42);
-  hist->GetXaxis()->SetTitleSize(0.06);
-  hist->GetXaxis()->SetTitleOffset(1.06);
-  hist->GetXaxis()->SetLabelFont(42);
-  hist->GetXaxis()->SetLabelSize(0.05);
-  hist->GetXaxis()->SetTitle(xname);
-  hist->GetYaxis()->CenterTitle();
-  hist->GetYaxis()->SetTitleFont(42);
-  hist->GetYaxis()->SetTitleSize(0.06);
-  hist->GetYaxis()->SetTitleOffset(1.12);
-  hist->GetYaxis()->SetLabelFont(42);
-  hist->GetYaxis()->SetLabelSize(0.05);
-  hist->GetYaxis()->SetTitle(yname);
-}
-
-void Plot1D(TH1D* hist){
+inline void Plot1D(TH1F hist, const TString name, const TString xlabel, const TString ylabel, const bool isLog=false){
 
   gStyle->SetOptTitle(0);
-  gStyle->SetOptStat(0);
+  //gStyle->SetOptStat(0);
   gStyle->SetOptFit(11111111);
-  TCanvas* can = (TCanvas*) new TCanvas("can","can",600,800);
-
-  can->SetLeftMargin(0.1);
-  can->SetRightMargin(0.15);
-  can->SetBottomMargin(0.15);
-  can->Draw();
-  can->cd();
-  hist->Draw("");
+  TCanvas can("can_"+name,"can_"+name,600,800);
+  if(isLog)
+    can.SetLogy();
+  
+  can.SetLeftMargin(0.12);
+  can.SetRightMargin(0.1);
+  can.SetBottomMargin(0.1);
+  hist.GetXaxis()->SetTitle(xlabel);
+  hist.GetYaxis()->SetTitle(ylabel);
+  //can.cd();
+  hist.SetLineColor(kBlack);
+  hist.SetLineWidth(2);
+  hist.Draw();
+  can.SaveAs(name+".pdf");
+  can.Close();
 }
-*/
+
 
 

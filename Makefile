@@ -21,11 +21,15 @@ H_FILES := $(wildcard include/*.h)
 OBJDIR := $(OUTOBJ)
 OBJ_FILES := $(addprefix $(OUTOBJ),$(notdir $(CC_FILES:.cc=.o)))
 
-all: h5test.x
+all: h5test.x ProcessScan.x
 
 h5test.x: $(SRCDIR)h5test.C $(OBJ_FILES) $(H_FILES)
 	$(CXX) $(CXXFLAGS) -o h5test.x $(OUTOBJ)*.o $(GLIBS) $(HDF5) $ $<
 	touch h5test.x
+
+ProcessScan.x: $(SRCDIR)ProcessScan.C $(OBJ_FILES) $(H_FILES)
+	$(CXX) $(CXXFLAGS) -o ProcessScan.x $(OUTOBJ)*.o $(GLIBS) $(HDF5) $ $<
+	touch ProcessScan.x
 
 $(OUTOBJ)%.o: src/%.cc include/%.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@

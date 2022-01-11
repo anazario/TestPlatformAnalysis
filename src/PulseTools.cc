@@ -142,9 +142,9 @@ float* PulseTools::GetMeanArr(vector<TH1F> pulse_hist){
 /**********************************************************************************/
 float PulseTools::InterpolateFunc(float* sample, int sample_size, float time){
   
-  float frequency = 10./(2e-9);
+  float frequency = 10.5e9;//10./(2e-9);
   float omega_c = 2.*M_PI*frequency;
-  float sampling_time = 1./(2*frequency);
+  float sampling_time = 1./frequency;
   
   time *= (1e-9);
   

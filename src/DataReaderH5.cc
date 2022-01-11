@@ -69,14 +69,13 @@ float DataReaderH5::GetRate(){
 vector<vector<float>> DataReaderH5::GetWaveForms(){
 
   vector<vector<float>> waveForms;
-  vector<float> tempVec;
   
   for(int i = 0; i < nTrig_; i++){
+    vector<float> pulse;
     for(int j = 0; j < SAMPLE_SIZE; j++){
-      tempVec.push_back(-vertOffset_[i]+samples_[i][j]*vertScale_[i]);
+      pulse.push_back(-vertOffset_[i]+samples_[i][j]*vertScale_[i]);
     }
-    waveForms.push_back(tempVec);
-    tempVec.clear();
+    waveForms.push_back(pulse);
   }
 
   return waveForms;
@@ -87,13 +86,11 @@ vector<vector<float>> DataReaderH5::GetTimeArr(){
   float tMin = -999.;
   float	tMax = -999.;
   vector<vector<float>> time;
-  vector<float> t;
   
   for(int i = 0; i < nTrig_; i++){
     tMin = trigOffset_[i]*1e9;
     tMax = (horizScale_[i]*(SAMPLE_SIZE-1)-trigOffset_[i])*1e9;
-    t = PulseTools::LinSpaceVec(tMin,tMax,SAMPLE_SIZE);
-    time.push_back(t);
+    time.push_back(PulseTools::LinSpaceVec(tMin,tMax,SAMPLE_SIZE));
   }
   return time;
 }
