@@ -25,8 +25,7 @@ int main(int argc, char *argv[]){
 	break;
       case 'c':
 	channel = atoi(optarg);
-	break;
-	
+	break;	
       }
   }
 
@@ -59,7 +58,7 @@ int main(int argc, char *argv[]){
   string name = ("ch"+to_string(channel)+"_hist").c_str();
   TH1F ampHist(("amp_"+name).c_str(),("amp_"+name).c_str(),52,0.,780.);
   TH1F timeHist(("time_"+name).c_str(),("time_"+name).c_str(),44,-120.,320.);
-  
+
   for(int x = 0; x < xMaxIdx; x++){
     for(int y = 0; y < yMaxIdx; y++){
 
@@ -72,26 +71,28 @@ int main(int argc, char *argv[]){
       if(rate > 0.){
 	vector<vector<float>> samples = dR->GetWaveForms();
 	vector<vector<float>> time = dR->GetTimeArr();
-	//if(dR->GetYpos() > 7. && dR->GetYpos() < 20){
-	for(int s = 0; s < samples.size(); s++){
-	  Pulse *pulse = new Pulse(samples[s],time[s]);
-	  float maxAmp = pulse->GetMaxAmp()*1e3;
-	  float maxTime = pulse->GetMaxTime();
-	  //if(maxTime > 70. && maxTime < 120.){
-	  ampHist.Fill(maxAmp);
-	  timeHist.Fill(maxTime);
-	  //}
-	  delete pulse;
+	if(dR->GetYpos() > 7. && dR->GetYpos() < 20){
+	  for(int s = 0; s < samples.size(); s++){
+	    Pulse *pulse = new Pulse(samples[s],time[s]);
+	    float maxAmp = pulse->GetMaxAmp()*1e3;
+	    float maxTime = pulse->GetMaxTime();
+	    
+	    if(maxAmp > 100. && maxTime < 120.){
+	      ampHist.Fill(maxAmp);
+	      timeHist.Fill(maxTime);
+	    }
+	    delete pulse;
+	  }
 	}
-	//}
       }
       delete dR;
       count++;
     }
   }
-  
-  Plot1D(ampHist, "plots/amplitude_"+name, "Amplitude [mV]", "Events", true);
-  Plot1D(timeHist, "plots/time_"+name, "Time [ns]", "Events", true);
+  cout << endl;
+
+  Plot::Plot1D(ampHist, "plots/amplitude_"+name, "Amplitude [mV]", "Events", true);
+  Plot::Plot1D(timeHist, "plots/time_"+name, "Time [ns]", "Events", true);
   
   return 0;
 }

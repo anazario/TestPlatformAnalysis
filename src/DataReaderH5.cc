@@ -116,58 +116,13 @@ void DataReaderH5::PrintInfo(){
   cout << endl;
 }
 
-//private methods
-void DataReaderH5::GetScanInfo(){
-
-  float value;
-  fstream file;
-  string  fileName,key;
-  char c;
-
-  fileName = (dataLoc_+dirName_+"/"+dirName_+"_info.json").c_str();
-  file.open(fileName.c_str());
-
-  if(file >> c && c == '{'){
-    while (file >> c)
-      {
-        if (c == '\"'){
-          while (file >> c && c != '\"')
-            key += c;
-        }
-        if(c == ':' && file >> value){
-          scanInfo_.insert(pair<string,float>(key,value));
-          key = "";
-        }
-      }
-  }
-  //save map to object member vars
-  nTrig_   = int(scanInfo_["nTrig"]);
-  xMaxIdx_ = int(scanInfo_["xMaxIdx"]);
-  yMaxIdx_ = int(scanInfo_["yMaxIdx"]);
-  xMin_    = scanInfo_["xMin"];
-  xMax_    = scanInfo_["xMax"];
-  yMin_    = scanInfo_["yMin"];
-  yMax_    = scanInfo_["yMax"];
-}
-
-void DataReaderH5::SaveDirInfo(string inPath){
-
-  pathName_ = inPath;
-  SplitFolder(pathName_,fileName_);
-  
-  dataLoc_ = pathName_;
-  Replace(dataLoc_,"/hdf5","");
-
-  SplitFolder(dataLoc_,dirName_);
-}
-
 void DataReaderH5::SplitFolder(string& fullPath, string& innerMostName){
 
   int length = fullPath.length();
   int slashIdx = fullPath.find_last_of('/');
 
   string path;
-  
+
   if(slashIdx+1 == length){
     fullPath.replace(slashIdx,1,"");
     slashIdx = fullPath.find_last_of('/');
@@ -188,4 +143,57 @@ bool DataReaderH5::Replace(string& str, const string& from, const string& to) {
         return false;
     str.replace(start_pos, from.length(), to);
     return true;
+}
+
+map<string,float> DataReaderH5::DictToMap(const string fileName){
+
+  float value;
+  fstream file;
+  string  key;
+  char c;
+
+  map<string,float> dict;
+  
+  file.open(fileName.c_str());
+
+  if(file >> c && c == '{'){
+    while (file >> c)
+      {
+        if (c == '\"'){
+          while (file >> c && c != '\"')
+            key += c;
+        }
+        if(c == ':' && file >> value){
+          dict.insert(pair<string,float>(key,value));
+          key = "";
+        }
+      }
+  }
+
+  return dict;
+}
+
+//private methods
+void DataReaderH5::GetScanInfo(){
+  scanInfo_ = DictToMap((dataLoc_+dirName_+"/"+dirName_+"_info.json").c_str());
+  
+  //save map to object member vars
+  nTrig_   = int(scanInfo_["nTrig"]);
+  xMaxIdx_ = int(scanInfo_["xMaxIdx"]);
+  yMaxIdx_ = int(scanInfo_["yMaxIdx"]);
+  xMin_    = scanInfo_["xMin"];
+  xMax_    = scanInfo_["xMax"];
+  yMin_    = scanInfo_["yMin"];
+  yMax_    = scanInfo_["yMax"];
+}
+
+void DataReaderH5::SaveDirInfo(string inPath){
+
+  pathName_ = inPath;
+  SplitFolder(pathName_,fileName_);
+  
+  dataLoc_ = pathName_;
+  Replace(dataLoc_,"/hdf5","");
+
+  SplitFolder(dataLoc_,dirName_);
 }

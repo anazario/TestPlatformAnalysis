@@ -86,6 +86,21 @@ float PulseTools::Integral(float* sample, float step_size){
   float sum = 0;
   
   for(int i = 0; i < total; i++){
+    cout << sample[i] << endl;
+    if(sample[i] > 0){
+      sum += sample[i]*step_size;
+      //cout << sum << endl;
+    }
+  }
+  return sum;
+}
+
+float PulseTools::Integral(vector<float> sample, float step_size){
+
+  int total = sample.size();
+  float sum = 0;
+
+  for(int i = 0; i < total; i++){
     if(sample[i] > 0)
       sum += sample[i]*step_size;
   }
@@ -156,6 +171,29 @@ float PulseTools::InterpolateFunc(float* sample, int sample_size, float time){
   return (isnan(sum))?0:sum;
 }
 
+float PulseTools::GetInterpolatedPoint(vector<float> pulse, float time, float frequency){
+
+  int size = pulse.size();
+  double bandLimit = frequency/2;//half the sampling frequency (GHz)
+
+  double sum = 0.;
+  for(int i = 0; i < size; i++){
+    double argument = M_PI*(2*bandLimit*time - i);
+    double sinc = pulse[i]*sin(argument)/argument;
+    if(isnan(sinc)){
+      sum += 0;
+      cout << i	<< endl;
+      cout << time << endl;
+      cout << argument << endl;
+    }
+    else{
+      sum += sinc;
+    }
+  }
+
+  return (isnan(sum))?0:sum;
+}
+
 /********************************************************************************/
 //Name: CalcInterval
 //Input: 1.Filled histogram (TH1F), 2.Confidence interval percentage (values 
@@ -177,44 +215,49 @@ void PulseTools::CalcInterval(TH1F hist, float CI, float& mean, float& low, floa
   
   float prob = hist.GetBinContent(imean);
   
-  float pl, pr;
-  int cl = imean-1;
-  int cr = imean+1;
-  int cl_non0 = cl;
-  int cr_non0 = cr;
+  float probLeft, probRight;
+  int binIdxLeft  = imean-1;
+  int binIdxRight = imean+1;
+  int lastBinIdxLeft  = binIdxLeft;
+  int lastBinIdxRight = binIdxRight;
+
   while(prob < CI){
-    if(cl >= 1)
-      pl = hist.GetBinContent(cl);
-    else
-      pl = 0;
     
-    if(cr <= Nbin)
-      pr = hist.GetBinContent(cr);
+    if(binIdxLeft >= 1)
+      probLeft = hist.GetBinContent(binIdxLeft);
     else
-      pr = 0;
+      probLeft = 0;
     
-    if(cl <= 1 || cr >= Nbin){
+    if(binIdxRight <= Nbin)
+      probRight = hist.GetBinContent(binIdxRight);
+    else
+      probRight = 0;
+    
+    if(binIdxLeft <= 1 || binIdxRight >= Nbin){
+      cout << "Breaking with total probability: " << prob << " (CI = " << CI << ")" << endl;
       break;
     }
-    
-    if(pl == 0. && pr == 0.){
-      cl--;
-      cr++;
+   
+    if(probLeft == 0. && probRight == 0.){
+      binIdxLeft--;
+      binIdxRight++;
       continue;
     }  
     
-    if(pl > pr){
-      prob += pl;
-      cl_non0 = cl;
-      cl--;
-    } else {
-      prob += pr;
-      cr_non0 = cr;
-      cr++;
+    if(probLeft > probRight){
+      prob += probLeft;
+      lastBinIdxLeft = binIdxLeft;
+      binIdxLeft--;
+    }
+    else {
+      prob += probRight;
+      lastBinIdxRight = binIdxRight;
+      binIdxRight++;
     }
   }
-  low = mean - hist.GetXaxis()->GetBinCenter(cl_non0);
-  high  = hist.GetXaxis()->GetBinCenter(cr_non0) - mean;
+  
+  low = mean - hist.GetXaxis()->GetBinCenter(lastBinIdxLeft);
+  high  = hist.GetXaxis()->GetBinCenter(lastBinIdxRight) - mean;
 }
 
 

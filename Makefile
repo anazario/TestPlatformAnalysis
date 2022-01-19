@@ -21,7 +21,7 @@ H_FILES := $(wildcard include/*.h)
 OBJDIR := $(OUTOBJ)
 OBJ_FILES := $(addprefix $(OUTOBJ),$(notdir $(CC_FILES:.cc=.o)))
 
-all: h5test.x ProcessScan.x
+all: h5test.x ProcessScan.x ScanPulseVariation.x
 
 h5test.x: $(SRCDIR)h5test.C $(OBJ_FILES) $(H_FILES)
 	$(CXX) $(CXXFLAGS) -o h5test.x $(OUTOBJ)*.o $(GLIBS) $(HDF5) $ $<
@@ -30,6 +30,10 @@ h5test.x: $(SRCDIR)h5test.C $(OBJ_FILES) $(H_FILES)
 ProcessScan.x: $(SRCDIR)ProcessScan.C $(OBJ_FILES) $(H_FILES)
 	$(CXX) $(CXXFLAGS) -o ProcessScan.x $(OUTOBJ)*.o $(GLIBS) $(HDF5) $ $<
 	touch ProcessScan.x
+
+ScanPulseVariation.x: $(SRCDIR)ScanPulseVariation.C $(OBJ_FILES) $(H_FILES)
+	$(CXX) $(CXXFLAGS) -o ScanPulseVariation.x $(OUTOBJ)*.o $(GLIBS) $(HDF5) $ $<
+	touch ScanPulseVariation.x
 
 $(OUTOBJ)%.o: src/%.cc include/%.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@

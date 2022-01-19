@@ -1,4 +1,6 @@
 #include "DataReaderH5.h"
+//#include "PulseShape.h"
+#include "Pulse.h"
 #include "TGraph.h"
 #include "TCanvas.h"
 #include "TStyle.h"
@@ -6,7 +8,7 @@
 #include <map>
 
 int main(void){
-
+  
   int x = 8;//x index of input file
   int y = 5;//y index of input file
   int s = 1;//index of sample
@@ -22,7 +24,16 @@ int main(void){
   //get corresponding time arrays
   vector<vector<float>> time = d.GetTimeArr();
 
+  //PulseShape ps(samples);
+  //ps.PlotSinglePulse(s);
+
+  Pulse pulse(samples[s], time[s]);
+  //pulse.InterpolateTest();
+  pulse.PlotCenterPulse(("Pulse_"+to_string(s)).c_str());
+  //cout << pulse.GetMaxAmp() << endl;
+  
   //make plot with single pulse
+  /*
   vector<float> xVec = time[s];
   vector<float> yVec = samples[s];
 
@@ -40,7 +51,7 @@ int main(void){
   gPad->SetGrid(1, 1); gPad->Update();
   g->Draw("AP");
   cv->SaveAs(("graph_pulse"+to_string(s)+".pdf").c_str());
-
+  */
   return 0;
 }
 

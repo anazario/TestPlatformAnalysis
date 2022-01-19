@@ -36,6 +36,10 @@ class DataReaderH5{
   //Print summary of scan and specifics of loaded file
   void PrintInfo();
 
+  static void SplitFolder(string& fullPath, string& innerMostName);
+  static bool Replace(string& str, const string& from, const string& to);
+  static map<string,float> DictToMap(const string fileName);
+  
 private:
 
   //data directory name
@@ -74,8 +78,6 @@ private:
   //private methods
   void GetScanInfo();
   void SaveDirInfo(string inPath);
-  void SplitFolder(string& fullPath, string& innerMostName);
-  bool Replace(string& str, const string& from, const string& to);
 
 };
 
