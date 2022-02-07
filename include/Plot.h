@@ -6,7 +6,8 @@
 
 #include <TLatex.h>
 #include <TString.h>
-#include <TH1D.h>
+#include <TH1.h>
+#include <TH2.h>
 #include <TGraph.h>
 #include <TMultiGraph.h>
 #include <TStyle.h>
@@ -23,7 +24,8 @@ class Plot{
   virtual ~Plot();
   
   static void CMSmark(TString plotTitle);
-  static void Plot1D(TH1F hist, const TString name, const TString xlabel, const TString ylabel, const bool isLog=false);
+  static void Plot1D(TH1D hist, const TString name, const TString xlabel, const TString ylabel, const bool isLog=false);
+  static void Plot2D(TH2D hist, const TString name, const TString xlabel, const TString ylabel, const bool isLog=false);
   static void PlotGraph(TString name, TString xlabel, TString ylabel, int size, vector<float> xVec, vector<float> yVec);
 
 };
