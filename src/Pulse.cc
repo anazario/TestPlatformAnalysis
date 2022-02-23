@@ -1,6 +1,5 @@
 #include "Pulse.h"
 
-//Public methods
 //Constructor
 Pulse::Pulse(const std::vector<double> pulse, const std::vector<double> time){
 
@@ -17,11 +16,15 @@ Pulse::Pulse(const std::vector<double> pulse, const std::vector<double> time){
 //Destructor
 Pulse::~Pulse(){}
 
+//Public member functions
+int Pulse::GetMaxIndex() const{
+  return maxIndex_;
+}
+
 double Pulse::GetSampleRate() const{
   return sampleRate_;
 }
 
-//Public member functions
 double Pulse::GetMaxAmp() const{  
   return maxAmplitude_;
 }
@@ -56,27 +59,11 @@ std::vector<double> Pulse::GetTime() const{
   return time_;
 }
 
-void Pulse::GetCenteredPulse(std::vector<double> &centeredPulse, std::vector<double> &shiftedTime){
-
-  int nLeft = -60;
-  int nRight = 260;
-  int size = nRight-nLeft+1;
-  
-  centeredPulse.clear();
-  shiftedTime.clear();
-
-  for(int i = nLeft; i <= nRight; i++){
-    centeredPulse.push_back(-(pulse_[maxIndex_+i])/maxAmplitude_);
-    shiftedTime.push_back(time_[maxIndex_+i]-maxTime_);
-  }
-}
-
 std::vector<double> Pulse::GetInterpolation(const int size, double start, double end, const double fixedTime){
 
   start += fixedTime;
   end += fixedTime;
   
-  //std::vector<double> interpolationTime = LinSpaceVec(start,end,size);
   std::vector<double> interpolatedPulse = GetInterpolatedPulse(size, start, end, *this);
   NormalizeVec(interpolatedPulse);
 
@@ -104,68 +91,50 @@ std::vector<double> Pulse::GetCDF(const int size, double start, double end, cons
   return CDFpulse;
 }
 
-void Pulse::GetCDFpulse(const int interpolationSize, std::vector<double> &CDFpulse, std::vector<double> &CDFtime){
-
-  CDFpulse.clear();
-  CDFtime.clear();
-  
-  std::vector<double> interpolatedPulse;
-
-  //GetInterpolatedPulseTest(interpolationSize, interpolatedPulse, CDFtime);
-
-  double stepSize = CDFtime[1] - CDFtime[0];
-
-  double sum = 0;
-  double integral = Integral(interpolatedPulse,stepSize);
-
-  for(int i = 0; i < interpolationSize; i++){
-    if(interpolatedPulse[i] > 0){
-      sum += interpolatedPulse[i]*stepSize/integral;
-    }
-
-    CDFpulse.push_back(sum);
-  }
-}
-
 void Pulse::PlotCenterPulse(const std::string name){
 
   std::vector<double> shiftedTime;
   std::vector<double> centeredPulse;
 
   GetCenteredPulse(centeredPulse,shiftedTime);
-  
-  int interpolationSize = 500;
-  std::vector<double> interpolatedPulse;
-  std::vector<double> interpolationTime;
-  
-  //GetInterpolatedPulseTest(interpolationSize,interpolatedPulse,interpolationTime);
-  //GetCDFpulse(interpolationSize,interpolatedPulse,interpolationTime);
+
   int size = centeredPulse.size();
   
   TCanvas can(TString("can_"+name),TString("can_"+name),600,800);
   can.SetLeftMargin(0.12);
-  
+
+  gStyle->SetOptTitle(0);
+  gStyle->SetOptFit(11111111);
   TGraph pulseGraph(size,&shiftedTime[0],&centeredPulse[0]);
-  TGraph interpolationGraph(interpolationSize,&interpolationTime[0],&interpolatedPulse[0]);
 
   pulseGraph.SetMarkerColor(kBlack);
   pulseGraph.SetMarkerStyle(8);
   pulseGraph.SetMarkerSize(.5);
+  pulseGraph.GetXaxis()->SetTitle("time [ns]");
+  pulseGraph.GetYaxis()->SetTitle("Amplitude [mV]");
 
-  interpolationGraph.GetXaxis()->SetTitle("time [ns]");
-  interpolationGraph.GetYaxis()->SetTitle("Amplitude[mV]");
-  interpolationGraph.SetLineWidth(2);
-  interpolationGraph.SetLineColor(kGreen+2);
-  interpolationGraph.SetTitle(TString(name));
-  
-  interpolationGraph.Draw("AL");
-  pulseGraph.Draw("sameP");
+  pulseGraph.Draw("AP");
 
   can.SaveAs(TString("plots/"+name+".pdf"));
   can.Close();
 }
 
 //Private Methods
+void Pulse::GetCenteredPulse(std::vector<double> &centeredPulse, std::vector<double> &shiftedTime){
+
+  int nLeft = -50;
+  int nRight = 150;
+  int size = nRight-nLeft+1;
+
+  centeredPulse.clear();
+  shiftedTime.clear();
+
+  for(int i = nLeft; i <= nRight; i++){
+    centeredPulse.push_back(-(pulse_[maxIndex_+i])/maxAmplitude_);
+    shiftedTime.push_back(time_[maxIndex_+i]-maxTime_);
+  }
+}
+
 void Pulse::FindMaximum(){
 
   int index = 999;

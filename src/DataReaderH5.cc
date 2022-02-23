@@ -58,7 +58,9 @@ void DataReaderH5::PrintInfo(){
   std::cout << "---------------------------------------" << std::endl;
   std::cout << "\tFile Location: " << fileLoc_ << std::endl;
   std::cout << "\tLocation: x = " << x_[0] << " mm, y = " << y_[0] << " mm" << std::endl;
-  std::cout << "\tTrigger rate: " << rate_[0] << " Hz" << std::endl;
+  std::cout << "\tTrigger rates: " << std::endl;
+  for(int ch = 1; ch < channels_+1; ch++)
+    std::cout << "\t  channel " << ch << ": " << GetRate(ch) << " Hz" << std::endl;
   std::cout << std::endl;
 }
 

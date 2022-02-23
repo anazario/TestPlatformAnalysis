@@ -3,6 +3,7 @@
 
 #define SAMPLE_SIZE 2002
 #define N_TRIG 1000
+#define CHANNELS 4
 
 #include <iostream>
 #include <map>
@@ -35,6 +36,7 @@ class DataReaderH5{
 private:
 
   int nTrig_ = N_TRIG;
+  int channels_ = CHANNELS;
 
   //arrays for storing data from datasets
   double x_[1];//platform x position

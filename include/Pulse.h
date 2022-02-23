@@ -17,6 +17,8 @@ class Pulse{
   Pulse(const std::vector<double> pulse, const std::vector<double> time);
   virtual ~Pulse();
 
+  int GetMaxIndex() const;
+  
   double GetSampleRate() const;
   double GetMaxAmp() const;
   double GetStartTime() const;
@@ -29,8 +31,6 @@ class Pulse{
   std::vector<double> GetPulse() const;
   std::vector<double> GetTime() const;
 
-  void GetCenteredPulse(std::vector<double> &centeredPulse, std::vector<double> &shiftedTime);
-  void GetCDFpulse(const int interpolationSize, std::vector<double> &interpolatedPulse, std::vector<double> &interpolationTime);
   void PlotCenterPulse(const std::string name);
   
  private:
@@ -48,7 +48,8 @@ class Pulse{
   std::vector<double> pulse_;
   std::vector<double> time_;
   std::vector<double> noise_;
-  
+
+  void GetCenteredPulse(std::vector<double> &centeredPulse, std::vector<double> &shiftedTime);
   void FindMaximum();
 };
 

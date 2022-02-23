@@ -34,7 +34,7 @@
 using namespace std;
 
 int main(void){
-
+  /*
   gROOT->SetBatch(kTRUE);
   RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
 
@@ -107,13 +107,13 @@ int main(void){
       //mpvLXGgauss.push_back(fit.GetGaussMean());
       //rateVsMPV_lxg->Fill(mpv,rate);
       //plot lxg fit
-      /*
+    
       TCanvas *can1 = fit.Plot(TString(file)+"_lxg");
       TString fitname = "MPV_"+file;
       can1->SaveAs("MPVplots/LandauXgauss/"+fitname+".pdf");
       can1->Close();
       delete can1;      
-      */
+    
       //Landau fit
       fit.toLandau(155.,15.);
       mpv = fit.GetLandauMPV();
@@ -121,13 +121,13 @@ int main(void){
       mpvL.push_back(mpv);
       //rateVsMPV_landau->Fill(mpv,rate);
       //plot landau fit
-      /*
+    
       TCanvas *can2 = fit.Plot(TString(file)+"_landau");
       fitname = "MPV_"+file;
       can2->SaveAs("MPVplots/Landau/"+fitname+".pdf");
       can2->Close();
       delete can2;
-      */
+    
     }
     else{
       outfileL << x << "\t" << y << "\t" << 0. << endl;
@@ -196,32 +196,68 @@ int main(void){
   //Plot2D(rateVsMPV_lxg, "RateVsMPV_lxg_ScanCh2_1", "MPV [mV]", "Rate [Hz]", false);
   //Plot1D(*hist, name, "Amplitude [mV]", "Events", true);
   //cout << allPulses.size() << endl;
+*/  
   
-  /*
-  int x = 8;//x index of input file
-  int y = 5;//y index of input file
+  int x = 3;//x index of input file
+  int y = 6;//y index of input file
   int s = 11;//index of sample
   int ch = 2;//select channel to analyze
 
   //create DataReaderH5 object and initialize with input file and channel
-  DataReaderH5 data(("data/ScanCh2_1/hdf5/x"+to_string(x)+"_y"+to_string(y)+".hdf5").c_str(),ch);
+  DataReaderH5 data(("data/ScanCh2_1/hdf5/x"+to_string(x)+"_y"+to_string(y)+".hdf5").c_str());
   //print general scan info and file details
   data.PrintInfo();
 
   //get all data from DataReaderH5 object as a PulseList object
-  PulseList pulseList = data.GetPulseList();
+  PulseList pulseList = data.GetPulseList(ch);
 
-  vector<double> ampDist = pulseList.GetAmpDistribution();
+  Pulse* pulse = pulseList[s];
+  pulse->PlotCenterPulse("pulse");
+  int maxTime = pulse->GetMaxIndex();
+  vector<double> amplitude = pulse->GetPulse();
+  vector<double> time = pulse->GetTime();
 
-  TString name = ("Amplitude_ch"+to_string(ch)).c_str();
-  TH1D* hist = GetHistFromVec(ampDist, name, 52, 0., 780.);
+  TCanvas* c = new TCanvas("c","c",600,800); 
+  TGraph *tree = new TGraph(time.size(),&time[0],&amplitude[0]);
+  
+  Double_t y1 = 0.; Double_t low_edge = 0.; Double_t high_edge = 0.;
+  tree->GetPoint(maxTime-8,low_edge, y1);
+  tree->GetPoint(maxTime+8, high_edge, y1);
+  //vector<double> ampDist = pulseList.GetAmpDistribution();
 
-  TF1 *fit = new TF1("fit","landau",0,700);
-  hist->Fit("fit", "Q", "", 0,700);
-  double mpv = fit->GetParameter(1);
+  //TString name = ("Amplitude_ch"+to_string(ch)).c_str();
+  //TH1D* hist = GetHistFromVec(ampDist, name, 52, 0., 780.);
 
-  Plot1D(hist, name, "Amplitude [mV]", "Events", true);
+  //TF1 *fit = new TF1("fit","landau",0,700);
+  TF1 *fpeak = new TF1("fpeak","gaus",low_edge,high_edge);
+  tree->Fit("fpeak", "Q", " ",low_edge,high_edge);
+  float chi2 = fpeak->GetChisquare();
+  // cout << "fit tree to gaus" << endl;
+  float timepeak = fpeak->GetParameter(1); //mean
+  // cout << "gaus mean: " << timepeak << endl;
+  
+  //TString title_str = Form("%i", evt);
+  tree->GetXaxis()->SetLimits(timepeak-5,timepeak+5);
+  tree->GetXaxis()->SetTitle("time (ns)");
+  tree->GetYaxis()->SetTitle("amplitube (mV)");
+  tree->SetTitle("Event ");// + title_str);
+  tree->SetMarkerSize(0.5);
+  tree->SetMarkerStyle(20);
+  //tree->PaintStats(fpeak);
+  tree->Draw();
+
+  c->SaveAs("GausPeakPlots.pdf");
+  c->Close();
+  delete pulse;
+  delete tree;
+  delete c;
+
+  //hist->Fit("fit", "Q", "", 0,700);
+  //double mpv = fit->GetParameter(1);
+
+  //Plot1D(hist, name, "Amplitude [mV]", "Events", true);
   ////////////////////////////////////////////////////////////////////////////////////////////////
+  /*
   Pulse *pulse = pulseList[s];
 
   vector<double> time;
