@@ -8,32 +8,33 @@
 #include "TLegend.h"
 #include "TGraph.h"
 #include "TGraphAsymmErrors.h"
-#include "TH1F.h"
+#include "TH1.h"
 #include "TColor.h"
 #include "TStyle.h"
 
 #include "Plot.h"
+#include "PulseList.h"
 #include "PulseTools.h"
 
 class PulseVariation{
 
  public:
-  
-  PulseVariation(const vector<TH1F> histCollection, const vector<float> timeAxis);
+  PulseVariation(const PulseList pulseList);  
+  PulseVariation(const std::vector<TH1D> histCollection, const std::vector<double> timeAxis);
   virtual ~PulseVariation();
 
-  vector<float> GetMeanPulse();
+  std::vector<double> GetMeanPulse() const;
 
-  void GetErrors(vector<float>& lowErrors, vector<float>& highErrors, float CI);
+  void GetErrors(std::vector<double>& lowErrors, std::vector<double>& highErrors, double CI);
   void PlotMeanErrors(const TString name, const TString ylabel);
   void PlotHistograms();
 
  private:
 
   int collectionSize_;
-  vector<float> timeAxis_;
-  vector<float> collectionMean_;
-  vector<TH1F> histCollection_;
+  std::vector<double> timeAxis_;
+  std::vector<double> collectionMean_;
+  std::vector<TH1D> histCollection_;
   
 };
 

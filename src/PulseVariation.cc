@@ -1,6 +1,14 @@
 #include "PulseVariation.h"
 
-PulseVariation::PulseVariation(const vector<TH1F> histCollection, const vector<float> timeAxis){
+//Constructors
+PulseVariation::PulseVariation(const PulseList pulseList){
+
+  collectionSize_ = pulseList.size();
+
+  
+}
+
+PulseVariation::PulseVariation(const std::vector<TH1D> histCollection, const std::vector<double> timeAxis){
 
   collectionSize_ = timeAxis.size();
   timeAxis_ = timeAxis;
@@ -8,12 +16,14 @@ PulseVariation::PulseVariation(const vector<TH1F> histCollection, const vector<f
   collectionMean_ = GetMeanPulse();
 }
 
+//Destructor
 PulseVariation::~PulseVariation(){}
 
-vector<float> PulseVariation::GetMeanPulse(){
+//public methods
+std::vector<double> PulseVariation::GetMeanPulse() const{
 
   int size = histCollection_.size();
-  vector<float> meanPulse;
+  std::vector<double> meanPulse;
   
   for(int h = 0; h < size; h++)
     meanPulse.push_back(histCollection_[h].GetMean());
@@ -21,15 +31,15 @@ vector<float> PulseVariation::GetMeanPulse(){
   return meanPulse;
 }
 
-void PulseVariation::GetErrors(vector<float>& lowErrors, vector<float>& highErrors, float CI){
+void PulseVariation::GetErrors(std::vector<double>& lowErrors, std::vector<double>& highErrors, double CI){
 
   int size = histCollection_.size();
-  float mean;
-  float lowError  = -999.;
-  float highError = -999.;
+  double mean;
+  double lowError  = -999.;
+  double highError = -999.;
 
   for(int i = 0; i < size; i++){
-    PulseTools::CalcInterval(histCollection_[i],CI,mean,lowError,highError);
+    CalcInterval(histCollection_[i],CI,mean,lowError,highError);
     lowErrors.push_back(lowError);
     highErrors.push_back(highError);
   }
@@ -37,14 +47,14 @@ void PulseVariation::GetErrors(vector<float>& lowErrors, vector<float>& highErro
 
 void PulseVariation::PlotMeanErrors(const TString name, const TString ylabel){
 
-  vector<float> lowErr68;
-  vector<float> highErr68;
+  std::vector<double> lowErr68;
+  std::vector<double> highErr68;
 
-  vector<float> lowErr95;
-  vector<float> highErr95;
+  std::vector<double> lowErr95;
+  std::vector<double> highErr95;
 
-  vector<float> lowErr99;
-  vector<float> highErr99;
+  std::vector<double> lowErr99;
+  std::vector<double> highErr99;
 
   GetErrors(lowErr68,highErr68,0.68);
   GetErrors(lowErr95,highErr95,0.95);
@@ -94,7 +104,7 @@ void PulseVariation::PlotMeanErrors(const TString name, const TString ylabel){
   leg.AddEntry(&tg99,"99% CL","f");
   leg.Draw("same");
 
-  Plot::CMSmark("");
+  CMSmark("");
   gPad->SetGrid(1, 1); gPad->Update();
 
   cv.SaveAs(name+".pdf");
@@ -115,7 +125,7 @@ void PulseVariation::PlotHistograms(){
     }
   }
   else{
-    cout << "Histogram vector is empty!" << endl;
+    std::cout << "Histogram vector is empty!" << std::endl;
     return;
   }
 }

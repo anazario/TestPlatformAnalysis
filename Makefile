@@ -8,6 +8,7 @@ CXXFLAGS      += $(filter-out -stdlib=libc++ -pthread , $(RFCFLAGS))
 
 GLIBS         = $(filter-out -stdlib=libc++ -pthread , $(ROOTGLIBS))
 GLIBS         += $(filter-out -stdlib=libc++ -pthread , $(RFGLIBS))
+GLIBS         += -lRooFit -lMinuit -lRooFitCore
 
 HDF5          = -lhdf5 -lhdf5_cpp
 

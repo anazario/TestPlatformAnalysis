@@ -2,10 +2,12 @@
 
 //Public methods
 //Constructor
-Pulse::Pulse(const vector<float> pulse, const vector<float> time){
+Pulse::Pulse(const std::vector<double> pulse, const std::vector<double> time){
 
   sampleSize_ = time.size();
-  sampleRate_ = sampleSize_/(time[sampleSize_-1]-time[0]);
+  startTime_ = time[0];
+  endTime_ = time[sampleSize_-1];
+  sampleRate_ = sampleSize_/(endTime_ - startTime_);
 
   pulse_ = pulse;
   time_ = time;
@@ -15,19 +17,49 @@ Pulse::Pulse(const vector<float> pulse, const vector<float> time){
 //Destructor
 Pulse::~Pulse(){}
 
+double Pulse::GetSampleRate() const{
+  return sampleRate_;
+}
+
 //Public member functions
-float Pulse::GetMaxAmp() const{  
+double Pulse::GetMaxAmp() const{  
   return maxAmplitude_;
 }
 
-float Pulse::GetMaxTime() const{
+double Pulse::GetStartTime() const{
+  return startTime_;
+}
+
+double Pulse::GetEndTime() const{
+  return endTime_;
+}
+
+double Pulse::GetMaxTime() const{
   return maxTime_;
 }
 
-void Pulse::GetCenteredPulse(vector<float> &centeredPulse, vector<float> &shiftedTime){
+double Pulse::GetNoiseRMS() const{
 
-  int nLeft = -50;
-  int nRight = 250;
+  std::vector<double> noise;
+
+  for(int i = 10; i < 710; i++)
+    noise.push_back(pulse_[i]);
+  
+  return GetSampleRMS(noise);
+}
+
+std::vector<double> Pulse::GetPulse() const{
+  return pulse_;
+}
+
+std::vector<double> Pulse::GetTime() const{
+  return time_;
+}
+
+void Pulse::GetCenteredPulse(std::vector<double> &centeredPulse, std::vector<double> &shiftedTime){
+
+  int nLeft = -60;
+  int nRight = 260;
   int size = nRight-nLeft+1;
   
   centeredPulse.clear();
@@ -39,140 +71,52 @@ void Pulse::GetCenteredPulse(vector<float> &centeredPulse, vector<float> &shifte
   }
 }
 
-void Pulse::InterpolateTest(){
+std::vector<double> Pulse::GetInterpolation(const int size, double start, double end, const double fixedTime){
 
-  float maxAmplitude = -999.;
-  float maxTime = -999.;
+  start += fixedTime;
+  end += fixedTime;
   
-  vector<float> shiftedTime;
-  vector<float> centeredPulse;
-  GetCenteredPulse(centeredPulse,shiftedTime);
+  //std::vector<double> interpolationTime = LinSpaceVec(start,end,size);
+  std::vector<double> interpolatedPulse = GetInterpolatedPulse(size, start, end, *this);
+  NormalizeVec(interpolatedPulse);
 
-  for(int i = 0; i < centeredPulse.size(); i++){
-    if(maxAmplitude < centeredPulse[i]){
-      maxAmplitude = centeredPulse[i];
-      maxTime = shiftedTime[i];
-    }
-  }
-  
-  int sizeAroundPeak = 100;
-
-  float initialTime = maxTime-shiftedTime[0]-2.;
-  float finalTime = maxTime-shiftedTime[0]+5.;
-
-  vector<float> timeAroundPeak = PulseTools::LinSpaceVec(initialTime,finalTime, sizeAroundPeak);
-
-  maxAmplitude = -999.;
-  maxTime = -999.;
-  
-  for(int i = 0; i < sizeAroundPeak; i++){
-    float amplitude = PulseTools::GetInterpolatedPoint(centeredPulse, timeAroundPeak[i], sampleRate_);
-    if(maxAmplitude < amplitude){
-      maxAmplitude = amplitude;
-      maxTime = timeAroundPeak[i];
-    }
-  }
-  
-  int interpolationSize = 500;
-  float pulseStart = -10.;
-  float pulseEnd = 50.;
-
-  vector<float> interpolationTime = PulseTools::LinSpaceVec(pulseStart, pulseEnd, interpolationSize);
-  vector<float> interpolatedPulse;
-  
-  for(int i = 0; i < interpolationSize; i++){
-    float amplitude = (PulseTools::GetInterpolatedPoint(centeredPulse, interpolationTime[i]-pulseStart, sampleRate_))/maxAmplitude;
-    interpolatedPulse.push_back(amplitude);
-  }
-  
-  TCanvas can(TString("can"),TString("can"),600,800);
-  can.SetLeftMargin(0.12);
-
-  TGraph interpolationGraph(interpolationSize,&interpolationTime[0],&interpolatedPulse[0]);
-
-  interpolationGraph.GetXaxis()->SetTitle("time [ns]");
-  interpolationGraph.GetYaxis()->SetTitle("Amplitude[mV]");
-  interpolationGraph.SetLineWidth(2);
-  interpolationGraph.SetLineColor(kBlack);
-
-  interpolationGraph.Draw("AL");
-
-  can.SaveAs(TString("plots/Pulse_1_interpolated.pdf"));
-  can.Close();
+  return interpolatedPulse;
 }
 
-void Pulse::GetInterpolatedPulse(const int interpolationSize, vector<float> &interpolatedPulse, vector<float> &interpolationTime){
+std::vector<double> Pulse::GetCDF(const int size, double start, double end, const double fixedTime){
 
-  interpolatedPulse.clear();
-  interpolationTime.clear();
+  double stepSize = (end - start)/double(size);
 
-  /*  
-  vector<float> shiftedTime;
-  vector<float> centeredPulse;
+  std::vector<double> interpolatedPulse = GetInterpolation(size, start, end, fixedTime);
+  std::vector<double> CDFpulse;
 
-  GetCenteredPulse(centeredPulse,shiftedTime);
-
-  int size = centeredPulse.size();
-  float ampMax = -999.;
-  float minTime = shiftedTime[0];
-  float maxTime = shiftedTime[size-1];
-  interpolationTime = PulseTools::LinSpaceVec(minTime,maxTime,interpolationSize);
-
-  for(int i = 0; i < interpolationSize; i++){
-    interpolatedPulse.push_back(PulseTools::GetInterpolatedPoint(centeredPulse, (interpolationTime[i]-minTime), sampleRate_));
-    if(ampMax < interpolatedPulse[i])
-      ampMax = interpolatedPulse[i];
-  }
-
-  for(int i = 0; i < interpolationSize; i++)
-    interpolatedPulse[i] /= ampMax;
-  */
+  double sum = 0;
+  double integral = Integral(interpolatedPulse,stepSize);
   
-  //Find peak amplitude and time by using fine interpolation near the sample maximum
-  int sizeAroundPeak = 100;
+  for(int i = 0; i < size; i++){
 
-  float initialTime = maxTime_-time_[0]-2.;
-  float finalTime   = maxTime_-time_[0]+5.;
-
-  vector<float> timeAroundPeak = PulseTools::LinSpaceVec(initialTime,finalTime, sizeAroundPeak);
-
-  int maxIndex;
-  float maxAmplitude = -999.;
-  float maxTime = -999.;
-
-  for(int i = 0; i < sizeAroundPeak; i++){
-    float amplitude = -PulseTools::GetInterpolatedPoint(pulse_, timeAroundPeak[i], sampleRate_);
-    if(maxAmplitude < amplitude){
-      maxAmplitude = amplitude;
-      maxTime = timeAroundPeak[i];
+    if(interpolatedPulse[i] > 0){
+      sum += interpolatedPulse[i]*stepSize/integral;
     }
+
+    CDFpulse.push_back(sum);
   }
-
-  //make interpolation over 60 ns window around the maximum amplitude 
-  float pulseStart = -10.;
-  float pulseEnd = 50.;
-
-  interpolationTime = PulseTools::LinSpaceVec(pulseStart, pulseEnd, interpolationSize);
-
-  for(int i = 0; i < interpolationSize; i++){
-    float amplitude = (-PulseTools::GetInterpolatedPoint(pulse_, interpolationTime[i]+maxTime, sampleRate_))/maxAmplitude;
-    interpolatedPulse.push_back(amplitude);
-  }
+  return CDFpulse;
 }
 
-void Pulse::GetCDFpulse(const int interpolationSize, vector<float> &CDFpulse, vector<float> &CDFtime){
+void Pulse::GetCDFpulse(const int interpolationSize, std::vector<double> &CDFpulse, std::vector<double> &CDFtime){
 
   CDFpulse.clear();
   CDFtime.clear();
   
-  vector<float> interpolatedPulse;
+  std::vector<double> interpolatedPulse;
 
-  GetInterpolatedPulse(interpolationSize, interpolatedPulse, CDFtime);
+  //GetInterpolatedPulseTest(interpolationSize, interpolatedPulse, CDFtime);
 
-  float stepSize = CDFtime[1] - CDFtime[0];
+  double stepSize = CDFtime[1] - CDFtime[0];
 
-  float sum = 0;
-  float integral = PulseTools::Integral(interpolatedPulse,stepSize);
+  double sum = 0;
+  double integral = Integral(interpolatedPulse,stepSize);
 
   for(int i = 0; i < interpolationSize; i++){
     if(interpolatedPulse[i] > 0){
@@ -183,18 +127,18 @@ void Pulse::GetCDFpulse(const int interpolationSize, vector<float> &CDFpulse, ve
   }
 }
 
-void Pulse::PlotCenterPulse(const string name){
+void Pulse::PlotCenterPulse(const std::string name){
 
-  vector<float> shiftedTime;
-  vector<float> centeredPulse;
+  std::vector<double> shiftedTime;
+  std::vector<double> centeredPulse;
 
   GetCenteredPulse(centeredPulse,shiftedTime);
   
   int interpolationSize = 500;
-  vector<float> interpolatedPulse;
-  vector<float> interpolationTime;
+  std::vector<double> interpolatedPulse;
+  std::vector<double> interpolationTime;
   
-  GetInterpolatedPulse(interpolationSize,interpolatedPulse,interpolationTime);
+  //GetInterpolatedPulseTest(interpolationSize,interpolatedPulse,interpolationTime);
   //GetCDFpulse(interpolationSize,interpolatedPulse,interpolationTime);
   int size = centeredPulse.size();
   
@@ -225,8 +169,8 @@ void Pulse::PlotCenterPulse(const string name){
 void Pulse::FindMaximum(){
 
   int index = 999;
-  float ampMin = 999.;
-  float tMin = 999.;
+  double ampMin = 999.;
+  double tMin = 999.;
 
   for (int s = 0 ; s < sampleSize_; s++){
     if (pulse_[s] < ampMin){

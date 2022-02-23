@@ -1,10 +1,12 @@
 #include <stdio.h>  
 #include <unistd.h>
 
+#include "Scan.h"
 #include "DataReaderH5.h"
-#include "Pulse.h"
+#include "PulseList.h"
 
-#include "TH1F.h"
+#include "TH1.h"
+#include "TH2.h"
 #include "TCanvas.h"
 #include "Plot.h"
 
@@ -45,54 +47,69 @@ int main(int argc, char *argv[]){
     cout << "Channel must be between an integer between 1 and 4!" << endl;
     return 0;
   }
-
+  /*
   DataReaderH5 dataReader((path+"x0_y0.hdf5").c_str(),1);
   
   int xMaxIdx = dataReader.GetXmaxIdx() + 1;
   int yMaxIdx = dataReader.GetYmaxIdx() + 1;
   int totalFiles = xMaxIdx*yMaxIdx;
   int count = 1;
+  */
+  Scan scan(path);
+  
+  int totalFiles = scan.GetTotalFiles();
+  int count = 0;
+
+  string dataLoc = scan.GetPathToData();
   
   cout << "Processing channel: " << channel << endl;
     
   string name = ("ch"+to_string(channel)+"_hist").c_str();
-  TH1F ampHist(("amp_"+name).c_str(),("amp_"+name).c_str(),52,0.,780.);
-  TH1F timeHist(("time_"+name).c_str(),("time_"+name).c_str(),44,-120.,320.);
+  TH1D *ampHist = new TH1D(("amp_"+name).c_str(),("amp_"+name).c_str(),52,0.,780.);
+  TH1D *noiseHist = new TH1D(("noise_"+name).c_str(),("noise_"+name).c_str(),52,0.,780.);
+  TH1D *timeHist = new TH1D(("time_"+name).c_str(),("time_"+name).c_str(),44,-120.,320.);
+  TH2D *ampVsTime = new TH2D(("ampVsTime_"+name).c_str(),("ampVsTime_"+name).c_str(),44,-120.,320.,52,0.,780.);
+  
+for(auto file : scan.GetFileList()){
 
-  for(int x = 0; x < xMaxIdx; x++){
-    for(int y = 0; y < yMaxIdx; y++){
-
-      fprintf(stdout, "\r  Processed files: %5d of %5d ", count, totalFiles);
-      fflush(stdout);
+  count++;
+  fprintf(stdout, "\r  Processed files: %5d of %5d ", count, totalFiles);
+  fflush(stdout);
       
-      DataReaderH5 *dR = new DataReaderH5((path+"x"+to_string(x)+"_y"+to_string(y)+".hdf5").c_str(),channel);
-      float rate = dR->GetRate();
-
-      if(rate > 0.){
-	vector<vector<float>> samples = dR->GetWaveForms();
-	vector<vector<float>> time = dR->GetTimeArr();
-	if(dR->GetYpos() > 7. && dR->GetYpos() < 20){
-	  for(int s = 0; s < samples.size(); s++){
-	    Pulse *pulse = new Pulse(samples[s],time[s]);
-	    float maxAmp = pulse->GetMaxAmp()*1e3;
-	    float maxTime = pulse->GetMaxTime();
-	    
-	    if(maxAmp > 100. && maxTime < 120.){
-	      ampHist.Fill(maxAmp);
-	      timeHist.Fill(maxTime);
-	    }
-	    delete pulse;
-	  }
-	}
+  DataReaderH5 *data = new DataReaderH5((dataLoc+file).c_str());
+  double rate = data->GetRate(channel);
+  
+  if(rate > 0.){
+    PulseList pulseList = data->GetPulseList(channel);
+    for(int s = 0; s < pulseList.size(); s++){
+      noiseHist->Fill(pulseList[s]->GetNoiseRMS()*1e3);
+      if(data->GetYpos() > 7. && data->GetYpos() < 20){
+	
+	double maxAmp = pulseList[s]->GetMaxAmp()*1e3;
+	double maxTime = pulseList[s]->GetMaxTime();
+	
+	ampHist->Fill(maxAmp);
+	timeHist->Fill(maxTime);
+	ampVsTime->Fill(maxTime,maxAmp);
+	
       }
-      delete dR;
-      count++;
+      delete pulseList[s];
     }
   }
-  cout << endl;
+  delete data;
+ }
 
-  Plot::Plot1D(ampHist, "plots/amplitude_"+name, "Amplitude [mV]", "Events", true);
-  Plot::Plot1D(timeHist, "plots/time_"+name, "Time [ns]", "Events", true);
+ cout << endl;
+
+  Plot1D(ampHist, "plots/amplitude_"+name, "Amplitude [mV]", "Events", true);
+  Plot1D(noiseHist, "plots/noise_"+name, "Amplitude [mV]", "Events", true);
+  Plot1D(timeHist, "plots/time_"+name, "Time [ns]", "Events", true);
+  Plot2D(ampVsTime, "plots/ampVsTime_"+name, "Time [ns]", "Amplitude [mV]",true);
+
+  delete ampHist;
+  delete noiseHist;
+  delete timeHist;
+  delete ampVsTime;
   
   return 0;
 }

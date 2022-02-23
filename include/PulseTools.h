@@ -1,6 +1,3 @@
-#ifndef PULSETOOLS_H
-#define PULSETOOLS_H
-
 #include <iostream>
 #include <map>
 #include <vector>
@@ -13,31 +10,27 @@
 #include "TEventList.h"
 #include "TColor.h"
 
-using namespace std;
+#include "Pulse.h"
+#include "Plot.h"
 
-class PulseTools{
+int FindMaxIndex(const std::vector<double>& sample);
 
- public:
-  
-  PulseTools();
+double FindMax(const std::vector<double>& sample);
+double GetSampleRMS(const std::vector<double>& sample);
+double Integral(const std::vector<double>& sample, const double step_size);
+double GetInterpolatedPoint(const std::vector<double>& pulse, const double time, double frequency);
 
-  virtual ~PulseTools();
+std::vector<double> LinSpaceVec(const double xmin, const double xmax, const int size);
+std::vector<double> GetInterpolatedPulse(const int interpolationSize, const double pulseStart, const double pulseEnd,
+					 const Pulse& originalPulse);
 
-  static int FindMinAbsolute(float* sample, int size);
-  static int FindMaxAbsolute(float* sample, int size);
-  static float* LinSpace(float xmin, float xmax, float step_size);
-  static vector<float> LinSpaceVec(float xmin, float xmax, int size);
-  static float Integral(float* sample, float step_size);
-  static float Integral(vector<float> sample, float step_size);
-  static vector<TH1F> MakeHistArr(int size, float xmin, float xmax, int nbins);
-  static float* GetMeanArr(vector<TH1F> pulse_hist);
-  static float InterpolateFunc(float* sample, int sample_size, float time);
-  static float GetInterpolatedPoint(vector<float> pulse, float time, float frequency);
-  static void CalcInterval(TH1F hist, float CI, float& mean, float& low, float& high);
+TH1D* GetHistFromVec(const std::vector<double>& inputVector, const TString name, const int bins, const double xInitial, const double xFinal);
+std::vector<TH1D> MakeHistArr(const int size, const double xmin, const double xmax, const int nbins);
 
-};
+void NormalizeVec(std::vector<double>& sample);
+void CalcInterval(TH1D hist, const double CI, double& mean, double& low, double& high);
 
-#endif
-
+void SplitFolder(std::string& fullPath, std::string& innerMostName);
+bool Replace(std::string& str, const std::string& from, const std::string& to);
 
     

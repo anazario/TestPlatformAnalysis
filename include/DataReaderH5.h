@@ -9,75 +9,60 @@
 #include <fstream>
 #include <vector>
 #include "H5Cpp.h"
-#include "PulseTools.h"
 
-using namespace std;
-using namespace H5;
+#include "PulseList.h"
+#include "PulseTools.h"
 
 class DataReaderH5{
 
  public:
-  DataReaderH5(const string fileName, const int channel);
+  DataReaderH5(const std::string filePath);
   virtual ~DataReaderH5();
-
-  //get data from single channel given filename
-  void GetChData(const string fileName, const int channel);
 
   //Access data in data reader object
   int GetNtrig();
-  int GetXmaxIdx();
-  int GetYmaxIdx();
-  float GetXpos();
-  float GetYpos();
-  float GetRate();
-  vector<vector<float>> GetWaveForms();
-  vector<vector<float>> GetTimeArr();
+  double GetXpos();
+  double GetYpos();
+  double GetRate(const int channel);
 
-  //Print summary of scan and specifics of loaded file
+  std::string GetFileName();
+  
+  PulseList GetPulseList(const int channel);
+  
+  //Print summary of loaded file
   void PrintInfo();
 
-  static void SplitFolder(string& fullPath, string& innerMostName);
-  static bool Replace(string& str, const string& from, const string& to);
-  static map<string,float> DictToMap(const string fileName);
-  
 private:
 
-  //data directory name
-  string fileName_;
-  string dirName_;
-  string pathName_;
-  string dataLoc_;
-  
-  //int nTrig_;
-  int channel_;
+  int nTrig_ = N_TRIG;
 
   //arrays for storing data from datasets
-  float x_[1];
-  float y_[1];
-  float rate_[1];
+  double x_[1];//platform x position
+  double y_[1];//platform y position
+  double rate_[1];//trigger rate (different per channel)
+  //waveform raw data
   int samples_[N_TRIG][SAMPLE_SIZE];
-  float horizOffset_[N_TRIG];
-  float horizScale_[N_TRIG];
-  float trigOffset_[N_TRIG];
-  float trigTime_[N_TRIG];
-  float vertOffset_[N_TRIG];
-  float vertScale_[N_TRIG];
+  double horizOffset_[N_TRIG];
+  double horizScale_[N_TRIG];
+  double trigOffset_[N_TRIG];
+  double trigTime_[N_TRIG];
+  double vertOffset_[N_TRIG];
+  double vertScale_[N_TRIG];
 
-  //map with general scan info
-  map<string,float> scanInfo_;
+  //file location
+  std::string fileLoc_;
+  //H5 file object
+  H5::H5File file_;
 
-  //variables from json file
-  int nTrig_;
-  int xMaxIdx_;
-  int yMaxIdx_;
-  float xMin_;
-  float xMax_;
-  float	yMin_;
-  float	yMax_;
-  
   //private methods
-  void GetScanInfo();
-  void SaveDirInfo(string inPath);
+
+  //get data from single channel given filename
+  void GetFileData();
+  void GetChData(const int channel);
+
+  //waveform information
+  std::vector<std::vector<double>> GetWaveForms();
+  std::vector<std::vector<double>> GetTimeArr();
 
 };
 

@@ -1,8 +1,9 @@
 #include <stdio.h>  
 #include <unistd.h>
 
+#include "Scan.h"
 #include "DataReaderH5.h"
-#include "Pulse.h"
+#include "PulseList.h"
 #include "PulseVariation.h"
 
 #include "TH1D.h"
@@ -47,68 +48,77 @@ int main(int argc, char *argv[]){
     return 0;
   }
 
+  /*
   DataReaderH5 dataReader((path+"x0_y0.hdf5").c_str(),1);
   
   int xMaxIdx = dataReader.GetXmaxIdx() + 1;
   int yMaxIdx = dataReader.GetYmaxIdx() + 1;
   int totalFiles = xMaxIdx*yMaxIdx;
   int count = 1;
+  */
+
+  Scan scan(path);
+
+  int totalFiles = scan.GetTotalFiles();
+  int count = 0;
+
+  string dataLoc = scan.GetPathToData();
   
   cout << "Processing channel: " << channel << endl;
     
   string name = ("ch"+to_string(channel)+"_hist").c_str();
 
-  int interpolationSize = 500;
-  vector<TH1F> pulseVariationHists;
+  int interpolationSize = 200;
+  double start = -10.;
+  double end = 30.;
+  vector<TH1D> pulseVariationHists;
 
-  vector<float> interpolationTime;
+  vector<double> interpolationTime = LinSpaceVec(start,end,interpolationSize);
   
   for(int h = 0; h < interpolationSize; h++){
-    TH1F hist(TString((name+"_"+to_string(h)).c_str()),TString((name+"_"+to_string(h)).c_str()),14000,-0.2,1.2);
+    TH1D hist(TString((name+"_"+to_string(h)).c_str()),TString((name+"_"+to_string(h)).c_str()),14000,-0.2,1.2);
     pulseVariationHists.push_back(hist);
   }
   
-  for(int x = 0; x < xMaxIdx; x++){
-    for(int y = 0; y < yMaxIdx; y++){
-
-      fprintf(stdout, "\r  Processed files: %5d of %5d ", count, totalFiles);
-      fflush(stdout);
+  for(auto file : scan.GetFileList()){
+  
+    fprintf(stdout, "\r  Processed files: %5d of %5d ", count, totalFiles);
+    fflush(stdout);
+    
+    //DataReaderH5 *data = new DataReaderH5((path+"x"+to_string(x)+"_y"+to_string(y)+".hdf5").c_str(),channel);
+    DataReaderH5 *data = new DataReaderH5((dataLoc+file).c_str());
+    double rate = data->GetRate(channel);
+    
+    if(rate > 0.){
+      PulseList pulseList = data->GetPulseList(channel);
       
-      DataReaderH5 *dR = new DataReaderH5((path+"x"+to_string(x)+"_y"+to_string(y)+".hdf5").c_str(),channel);
-      float rate = dR->GetRate();
-
-      if(rate > 0.){
-	vector<vector<float>> samples = dR->GetWaveForms();
-	vector<vector<float>> time = dR->GetTimeArr();
-	if(dR->GetYpos() > 7. && dR->GetYpos() < 20){
-	  for(int s = 0; s < samples.size(); s++){
-	    Pulse *pulse = new Pulse(samples[s],time[s]);
-	    float maxAmp = pulse->GetMaxAmp()*1e3;
-	    float maxTime = pulse->GetMaxTime();
+      if(data->GetYpos() > 7. && data->GetYpos() < 20){
+	for(int s = 0; s < pulseList.size(); s++){
+	  Pulse *pulse = pulseList[s];
+	  double maxAmp = pulse->GetMaxAmp()*1e3;
+	  double maxTime = pulse->GetMaxTime();
+	  
+	  if(maxAmp > 100. && maxTime < 120.){
+	    //vector<double> interpolatedPulse = pulse->GetInterpolation(interpolationSize,start,end,maxTime);
+	    vector<double> interpolatedPulse = pulse->GetCDF(interpolationSize,start,end,maxTime);
 	    
-	    if(maxAmp > 100. && maxTime < 120.){
-	      vector<float> interpolatedPulse;
-	      
-	      //pulse->GetInterpolatedPulse(interpolationSize,interpolatedPulse,interpolationTime);
-	      pulse->GetCDFpulse(interpolationSize,interpolatedPulse,interpolationTime);
-	      
-	      for(int h = 0; h < interpolatedPulse.size(); h++){
-		pulseVariationHists[h].Fill(interpolatedPulse[h]);
-	      }
+	    for(int h = 0; h < interpolatedPulse.size(); h++){
+	      pulseVariationHists[h].Fill(interpolatedPulse[h]);
 	    }
-	    delete pulse;
 	  }
+	  delete pulse;
 	}
       }
-      delete dR;
-      count++;
     }
+    delete data;
+    count++;
+
   }
   cout << endl;
 
   PulseVariation pulseVar(pulseVariationHists,interpolationTime);
-  //pulseVar.PlotMeanErrors("CDFMeanErr_Scan15_Ch2","Amplitude/(Max Amplitude)");
-  pulseVar.PlotMeanErrors("CDFMeanErr_Scan15_Ch2","Pulse Cumulative Distribution");
+  //pulseVar.PlotMeanErrors("PulseMeanErr_Scan15_Ch2","Amplitude/(Max Amplitude)");
+  pulseVar.PlotMeanErrors("CDFMeanErr_ScanCh2_1","Pulse Cumulative Distribution");
   pulseVar.PlotHistograms();
 
   return 0;
