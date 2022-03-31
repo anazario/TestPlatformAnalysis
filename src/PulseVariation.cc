@@ -1,7 +1,8 @@
 #include "PulseVariation.h"
 
 //Constructors
-PulseVariation::PulseVariation(const PulseList pulseList){
+PulseVariation::PulseVariation(const type){}
+PulseVariation::PulseVariation(const PulseList& pulseList, const type){
 
   collectionSize_ = pulseList.size();
 

@@ -101,7 +101,9 @@ RooFFTConvPdf* UnbinnedFit::toLandauXgauss(const double meanL, const double sigm
 
   SetLandauFit(meanL, sigmaL);
   SetGaussFit(meanG, sigmaG);
-
+  meanG_->setConstant(kTRUE);
+  sigmaG_->setConstant(kFALSE);
+  
   //LandauXGaussian convolution
   fitname_ = "lxg_";
   lxg_ = new RooFFTConvPdf(fitname_, fitname_, *var_, *landau_, *gauss_);
@@ -181,9 +183,6 @@ void UnbinnedFit::SetGaussFit(const double mean, const double sigma){
   sigmaG_ = new RooRealVar(fitname_,"Gauss Width",sigma, 0., 10000.);
   fitname_ = "gauss_";
   gauss_ = new RooGaussian(fitname_,fitname_,*var_,*meanG_,*sigmaG_);
-  //meanG_->setConstant(kTRUE);
-  meanG_->setConstant(kFALSE);
-  sigmaG_->setConstant(kFALSE);
 }
 
 TCanvas* UnbinnedFit::GetPlot(RooAbsPdf* fitPdf, const TString name, const int nBins, const double xMin, const double xMax){

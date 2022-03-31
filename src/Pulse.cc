@@ -4,9 +4,9 @@
 Pulse::Pulse(const std::vector<double> pulse, const std::vector<double> time){
 
   sampleSize_ = time.size();
-  startTime_ = time[0];
-  endTime_ = time[sampleSize_-1];
-  sampleRate_ = sampleSize_/(endTime_ - startTime_);
+  timeLowEdge_ = time[0];
+  timeHighEdge_ = time[sampleSize_-1];
+  sampleRate_ = sampleSize_/(timeHighEdge_ - timeLowEdge_);
 
   pulse_ = pulse;
   time_ = time;
@@ -29,12 +29,12 @@ double Pulse::GetMaxAmp() const{
   return maxAmplitude_;
 }
 
-double Pulse::GetStartTime() const{
-  return startTime_;
+double Pulse::GetTimeLowEdge() const{
+  return timeLowEdge_;
 }
 
-double Pulse::GetEndTime() const{
-  return endTime_;
+double Pulse::GetTimeHighEdge() const{
+  return timeHighEdge_;
 }
 
 double Pulse::GetMaxTime() const{
@@ -89,6 +89,24 @@ std::vector<double> Pulse::GetCDF(const int size, double start, double end, cons
     CDFpulse.push_back(sum);
   }
   return CDFpulse;
+}
+
+std::vector<double> Pulse::GetInterpolatedPulse(const int interpolationSize, const double pulseStart, const double pulseEnd,
+						const Pulse& originalPulse){
+
+  double sampleRate = originalPulse.GetSampleRate();
+
+  std::vector<double> interpolatedPulse;
+  std::vector<double> interpolationTime = LinSpaceVec(pulseStart,pulseEnd,interpolationSize);
+
+  double timeDiff = originalPulse.GetTimeLowEdge();
+
+  for(int i = 0; i < interpolationSize; i++){
+    double amplitude = -GetInterpolatedPoint(originalPulse.GetPulse(), interpolationTime[i]-timeDiff, sampleRate);
+    interpolatedPulse.push_back(amplitude);
+  }
+
+  return interpolatedPulse;
 }
 
 void Pulse::PlotCenterPulse(const std::string name){

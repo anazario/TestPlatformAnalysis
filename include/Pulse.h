@@ -7,7 +7,6 @@
 
 #include "TH1.h"
 
-#include "Interpolate.h"
 #include "PulseTools.h"
 #include "Plot.h"
 
@@ -21,8 +20,8 @@ class Pulse{
   
   double GetSampleRate() const;
   double GetMaxAmp() const;
-  double GetStartTime() const;
-  double GetEndTime() const;
+  double GetTimeLowEdge() const;
+  double GetTimeHighEdge() const;
   double GetMaxTime() const;
   double GetNoiseRMS() const;
 
@@ -31,6 +30,9 @@ class Pulse{
   std::vector<double> GetPulse() const;
   std::vector<double> GetTime() const;
 
+  static std::vector<double> GetInterpolatedPulse(const int interpolationSize, const double pulseStart, const double pulseEnd,
+                                                  const Pulse& originalPulse);
+  
   void PlotCenterPulse(const std::string name);
   
  private:
@@ -40,8 +42,8 @@ class Pulse{
   double sampleSize_;
   double sampleRate_;
   double maxAmplitude_;
-  double startTime_;
-  double endTime_;
+  double timeLowEdge_;
+  double timeHighEdge_;
   double maxTime_;
   double noiseRMS_;
   

@@ -76,7 +76,8 @@ void PlotGraph(TString name, TString xlabel, TString ylabel, int size, std::vect
   tg.GetXaxis()->SetTitle(xlabel);
   tg.GetYaxis()->SetTitle(ylabel);
   tg.Draw("AL");
-  can.SetLeftMargin(0.12);
+  tg.SetTitle("");
+  can.SetLeftMargin(0.15);
   can.SaveAs(name+".pdf");
 
   can.Close();

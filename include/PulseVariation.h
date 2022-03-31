@@ -16,10 +16,12 @@
 #include "PulseList.h"
 #include "PulseTools.h"
 
-class PulseVariation{
+enum type{kPulse,kCDF};
+class PulseVariation : protected std::vector<TH1D*>{
 
  public:
-  PulseVariation(const PulseList pulseList);  
+  PulseVariation(const type=kPulse);
+  PulseVariation(const PulseList& pulseList, const type=kPulse);  
   PulseVariation(const std::vector<TH1D> histCollection, const std::vector<double> timeAxis);
   virtual ~PulseVariation();
 
@@ -30,6 +32,8 @@ class PulseVariation{
   void PlotHistograms();
 
  private:
+
+  type pulseType_;
 
   int collectionSize_;
   std::vector<double> timeAxis_;

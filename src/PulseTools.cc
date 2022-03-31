@@ -64,6 +64,25 @@ double GetInterpolatedPoint(const vector<double>& pulse, const double time, cons
   return (isnan(sum))?0:sum;
 }
 
+double Mean(const vector<double>& inputVec){
+
+  double sum = 0;
+
+  for(int i = 0; i < inputVec.size(); i++)
+    sum += inputVec[i];
+
+  return sum/double(inputVec.size());
+}
+
+vector<double> Diff(const vector<double>& inputVec){
+
+  vector<double> diffVec;
+  for(int i = 1; i < inputVec.size(); i++)
+    diffVec.push_back(inputVec[i]-inputVec[i-1]);
+
+  return diffVec;
+}
+
 vector<double> LinSpaceVec(const double xmin, const double xmax, const int size){
 
   const double stepSize = (xmax - xmin)/size;
@@ -76,24 +95,6 @@ vector<double> LinSpaceVec(const double xmin, const double xmax, const int size)
   return time_vec;
 }
 
-vector<double> GetInterpolatedPulse(const int interpolationSize, const double pulseStart, const double pulseEnd,
-				    const Pulse& originalPulse){
-
-  double sampleRate = originalPulse.GetSampleRate();
-
-  vector<double> interpolatedPulse;
-  vector<double> interpolationTime = LinSpaceVec(pulseStart,pulseEnd,interpolationSize);
-
-  double timeDiff = originalPulse.GetStartTime();
-
-  for(int i = 0; i < interpolationSize; i++){    
-    double amplitude = -GetInterpolatedPoint(originalPulse.GetPulse(), interpolationTime[i]-timeDiff, sampleRate);
-    interpolatedPulse.push_back(amplitude);
-  }
-
-  return interpolatedPulse;
-}
-
 TH1D* GetHistFromVec(const vector<double>& inputVector, const TString name, const int bins, const double xInitial, const double xFinal){
 
   TH1D* distribution = new TH1D(name,name,bins,xInitial,xFinal);
@@ -102,7 +103,6 @@ TH1D* GetHistFromVec(const vector<double>& inputVector, const TString name, cons
     distribution->Fill(inputVector[i]);
 
   return distribution;
-  
 }
 
 vector<TH1D> MakeHistArr(const int size, const double xmin, const double xmax, const int nbins){
