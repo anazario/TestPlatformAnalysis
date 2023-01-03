@@ -54,7 +54,7 @@ if __name__ == '__main__':
     time_data = f[f'ch{channel}_time']
     num_trig = len(f[f'ch{channel}_samples'])
     num_samples  = len(f[f'ch{channel}_samples'][0])
-
+    
     #set max trigger to loop through
     max_trig = options.max_trig
     if max_trig is None or max_trig > num_trig:

@@ -3,6 +3,7 @@ from scipy import interpolate
 from scipy.ndimage import filters
 from scipy import optimize
 
+import BSpline as bsp
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -50,6 +51,20 @@ def cfd(waveform, time, threshold=0.02, base_line=20, fraction=0.3, hysteresis=0
         return t1 + (t2 - t1)*(fraction-v1)/(v2 - v1)
     else:
         return None
+
+def cfd_aligned_waveform(pulse, size, cfd_fraction, baseline):
+    
+    cfd_time = pulse.get_cfd_time(fraction=cfd_fraction, baseline=baseline)#, smooth=True)                                                                            
+    transformation_time = np.zeros(size)
+    transformed_waveform = np.zeros(size)
+    
+    if cfd_time is not None and abs(cfd_time) < 5:                                                                                                                  
+        transformation_time = np.linspace(cfd_time-1.8, cfd_time+20, size)
+        transformation_function = interpolate.interp1d(x=pulse.get_time_array(), y=pulse.get_waveform(), kind='cubic')
+        transformed_waveform = transformation_function(transformation_time)
+    
+    return transformation_time, transformed_waveform
+        
 
 def get_interpolated_point(pulse, time, frequency):
 
@@ -147,8 +162,24 @@ def inv_piecewise_func(x, line_x_arr, line_y_arr):
         coeff_collection.append(np.polyfit(pair_x, pair_y, 1))
     print(coeff_collection)
     return 0
+
+def bspline(samples, knot_vector, order=3, precision=1e-8, isClamped=False):
+
+    fit = bsp.BSpline(samples, knot_vector, order=order, precision=precision, isClamped=isClamped)
+    spline = fit.spline_function()
+    error = fit.get_error()
+
+    return spline, error
+
+def bspline_err(knot_vector, samples):
+    knot_vector = list(knot_vector)
+    knot_vector.sort()
+    fit = bsp.BSpline(samples, knot_vector)
+    error = fit.get_error()
+
+    return error
         
-def plot_scatter(x_array, y_array, name, xlabel, ylabel, title, fit=None):
+def plot_scatter(x_array, y_array, name, xlabel, ylabel, title='', fit=None):
     fig, ax = plt.subplots()
     ax.set_ylabel(ylabel)
     ax.set_xlabel(xlabel)

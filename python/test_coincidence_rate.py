@@ -16,7 +16,7 @@ class H5Interface:
         self.h5_file = h5_file
         self.channel = channel
         self.samples = h5_file[f'ch{channel}_samples']
-        
+        #import waveform conversion factors if 
         if self.samples.dtype == 'int8':
             self.isConverted = False
             self.vert_offset = infile_h5[f'ch{channel}_vert_offset']

@@ -33,10 +33,6 @@ class Pulse:
         self.waveform -= noise_rms
         
     def flip_sign(self):
-        if self.sign_inverted:
-            self.sign_inverted = False
-        else:
-            self.sign_inverted = True
         self.waveform *= -1
 
     def get_num_samples(self):
@@ -48,17 +44,11 @@ class Pulse:
     def get_time_at_max(self):
         waveform = self.waveform
         time_arr = self.get_time_array()
-        if self.sign_inverted:
-            return(time_arr[np.argmax(waveform)])
-        else:
-            return(time_arr[np.argmin(waveform)])
+        return(time_arr[np.argmax(waveform)])
 
     def get_max_amplitude(self):
         waveform = self.waveform
-        if self.sign_inverted:
-            return np.max(waveform)
-        else:
-            return -np.min(waveform)
+        return np.max(waveform)
 
     def save_plot(self, name='pulse', title='', isDot=False):
         fig, ax = plt.subplots()
