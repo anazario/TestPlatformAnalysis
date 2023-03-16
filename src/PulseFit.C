@@ -2,57 +2,81 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <unistd.h>
 
 #include <TChain.h>
 #include <TKey.h>
 #include <iostream>
 
-#include "Pulse.h"
 #include "RootInterface.h"
 #include "Plot.h"
+#include "PulseTools.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        std::cout << "Usage: print_branches <filename.root> <max_entries>" << std::endl;
-        return 1;
+
+    std::string filename;
+    int num_entries = 1000;
+    int interpolation_size = 100;
+    double time_window = 30;//ns
+    double cfd_fraction = -1.0;
+
+    int c;
+    while ((c = getopt(argc, argv, "i:n:s:t:c:")) != -1) {
+        switch (c) {
+            case 'i':
+                filename = optarg;
+                break;
+            case 'n':
+                num_entries = std::stoi(optarg);
+                break;
+            case 's':
+                interpolation_size = std::stoi(optarg);
+                break;
+            case 't':
+                time_window = std::stod(optarg);
+                break;
+            case 'c':
+                cfd_fraction = std::stod(optarg);
+                break;
+            case '?':
+                std::cerr << "Unknown option: -" << optopt << std::endl;
+                return 1;
+            default:
+                std::cerr << "Unexpected error" << std::endl;
+                return 1;
+        }
     }
 
-    const char* filename = argv[1];
-    const int nEntries = std::atoi(argv[2]);
-
     auto tch = new TChain("data");
-    tch->Add(filename);
+    tch->Add(filename.c_str());
 
     auto data = new RootInterface(tch, 1);
 
-    int interp_size = 200;
     int sample_size = data->GetSampleSize();
     std::vector<double> waveform(sample_size);
     std::vector<double> time;
-    std::vector<double> interpolated_waveform(interp_size, 0.);
+    std::vector<double> interpolated_waveform(interpolation_size, 0.);
     std::vector<double> interpolation_time;
     //std::vector<double> knot_vector = {0, 0.0566526, 0.0706713, 0.118964, 0.13563, 0.257123, 0.507515, 1, 1, 1, 1 };
-    //std::vector<double> knot_vector = {0., 0.05, 0.085, 0.1, 0.14, 0.2, 0.4, 1., 1., 1., 1.};
-    std::vector<double> knot_vector = {0, 0.0507, 0.0862, 0.09, 0.142, 0.203, 0.405, 1, 1, 1, 1};
+    std::vector<double> knot_vector = {0., 0.05, 0.085, 0.1, 0.14, 0.2, 0.4, 1., 1., 1., 1.};
+    //std::vector<double> knot_vector = {0, 0.0507, 0.0862, 0.09, 0.142, 0.203, 0.405, 1, 1, 1, 1};
+    //std::vector<double> knot_vector = {0, 0.0089733, 0.0609578, 0.101097, 0.153922, 0.305948, 0.490758, 1, 1, 1, 1};
     std::vector<double> spline;
 
-    std::vector<std::vector<double> > density_matrix(interp_size, std::vector<double>(interp_size, 0.));
+    std::vector<std::vector<double> > density_matrix(interpolation_size, std::vector<double>(interpolation_size, 0.));
 
-    for(int e = 0; e < nEntries; e++){
-
-        if (e % 100 == 0) {
-            fprintf(stdout, "\r  Processed events: %8d of %8d ", e, nEntries);
-        }
-        fflush(stdout);
+    auto start_time = std::chrono::high_resolution_clock::now();
+    int count = 0;
+    for(int e = 0; e < tch->GetEntries(); e++){
 
         data->fChain->GetEntry(e);
 
-        double horiz_offset = data->horiz_offset;
+        //double horiz_offset = data->horiz_offset;
         double horiz_scale = data->horiz_scale;
         double trig_offset = data->trig_offset;
-        double trig_time = data->trig_time;
+        //double trig_time = data->trig_time;
         double vert_offset = data->vert_offset;
         double vert_scale = data->vert_scale;
 
@@ -63,58 +87,93 @@ int main(int argc, char* argv[]) {
         double time_end = (horiz_scale*(sample_size-1)-trig_offset)*1e9;
         time = LinSpaceVec(time_begin, time_end, sample_size);
         auto max_elem = std::max_element(waveform.begin(), waveform.end());
-        double max_time = time[std::distance(waveform.begin(), max_elem)];
+        auto min_elem = std::min_element(waveform.begin(), waveform.end());
+        int max_index = std::distance(waveform.begin(), max_elem);
+        int min_index = std::distance(waveform.begin(), min_elem);
+        double max_time = time[max_index];
 
         PedestalSubtraction(waveform, int(waveform.size()/3));
 
+        //skip bad waveforms, noise and saturated samples
+        if(waveform[max_index] > 0.65 ||  waveform[max_index] < 0.1 || fabs(waveform[min_index]) > fabs(waveform[max_index]))
+            continue;
+
+        //define interpolation function to use
         auto interp_function = ShannonNyquistInterp(time, waveform);
 
         //make interpolation for cfd time
-        interpolation_time = LinSpaceVec(max_time-10., max_time+10., interp_size);
-        //ShannonNyquistInterp(time, waveform, interpolation_time, interpolated_waveform);
-        interpolated_waveform = interp_function(interpolation_time);
-        double cfd_time = CalculateCFDTime(interpolated_waveform, interpolation_time, 0.4);
-
-        //make interpolation window at CFD time
-        if(!isnan(cfd_time)) {
-            interpolation_time = LinSpaceVec(cfd_time - 2., cfd_time + 23., interp_size);
-            //ShannonNyquistInterp(time, waveform, interpolation_time, interpolated_waveform);
+        double cfd_time = -1.;
+        if(cfd_fraction > 0.05) {
+            interpolation_time = LinSpaceVec(max_time - 4., max_time + 10., interpolation_size);
             interpolated_waveform = interp_function(interpolation_time);
-            FillDensityMatrix(density_matrix, interpolated_waveform);
+            cfd_time = CalculateCFDTime(interpolated_waveform, interpolation_time, cfd_fraction);
         }
 
-        double time_window = 25;//ns
-        auto time_func = WindowFitErr(interp_function, knot_vector, time_begin, time_end, time_window, 0.01);
-        std::vector<double> time_test = LinSpaceVec(time_begin, time_end-time_window, 100);
+        //time fit over window
+        /*auto time_func = WindowFitErr(knot_vector, waveform, time,
+                                      time_window, 0.15);
+        double fit_time = BrentsMethod(time_func, time_begin, time_end-time_window);*/
+
+        //make interpolation window at CFD time or time from fit
+        if(!isnan(cfd_time) && cfd_fraction > 0.)
+            interpolation_time = LinSpaceVec(cfd_time - 2., cfd_time + time_window - 2., interpolation_size);
+        else if(cfd_fraction < 0.) {
+            auto time_func = WindowFitErr(knot_vector, waveform, time,
+                                          time_window, 0.15);
+            double fit_time = BrentsMethod(time_func, time_begin, time_end - time_window);
+            interpolation_time = LinSpaceVec(fit_time, fit_time + time_window, interpolation_size);
+        }
+        else
+            continue;
+
+        bool noNans = !std::any_of(interpolation_time.begin(), interpolation_time.end(),
+                                   [](double d) { return std::isnan(d); });
+
+        if(noNans){
+            interpolated_waveform = interp_function(interpolation_time);
+            FillDensityMatrix(density_matrix, interpolated_waveform);
+            count++;
+        }
+
+        //print progress to command line
+        if (count % 100 == 0) {
+            fprintf(stdout, "\r  Processed events: %8d of %8d ", count, num_entries);
+        }
+        fflush(stdout);
+        if(count == num_entries)
+            break;
     }
 
-    std::cout << "Finished!" << std::endl;
-    std::vector<double> lead_eigvector = GetEigenvectorAtIndex(density_matrix);
-    std::cout << "here" << std::endl;
-    knot_vector = MinimizeKnots(knot_vector, lead_eigvector, 1e3);
+    cout << "\nProcessed " << count << " waveforms\n" << endl;
+
+    vector<double> lead_eigenvector = GetEigenvectorAtIndex(density_matrix);
+
+    //if eigenvector is upside down, flip it
+    auto max_elem = std::max_element(lead_eigenvector.begin(), lead_eigenvector.end());
+    auto min_elem = std::min_element(lead_eigenvector.begin(), lead_eigenvector.end());
+    if(fabs(*min_elem) > fabs(*max_elem))
+        std::transform(lead_eigenvector.begin(), lead_eigenvector.end(), lead_eigenvector.begin(),
+                       [](double d) { return -1.0 * d; });
+
+    //subtract first element from entire sample
+    std::transform(lead_eigenvector.begin(), lead_eigenvector.end(), lead_eigenvector.begin(),
+                   [&lead_eigenvector](double d) { return d - (lead_eigenvector[0]); });
+
+    knot_vector = MinimizeKnots(knot_vector, lead_eigenvector, 1e3);
 
     BSpline bsp(knot_vector);
-    spline = bsp.SplineLS(lead_eigvector);
+    spline = bsp.SplineLS(lead_eigenvector);
 
+    cout << "Minimized knot vector: ";
     for(auto elem : knot_vector)
-        std::cout << elem << " ";
-    std::cout << std::endl;
+        cout << elem << " ";
+    cout << endl;
 
-    PlotSplineFit(lead_eigvector, spline, knot_vector, "pulse");
+    PlotSplineFit(lead_eigenvector, spline, knot_vector, "pulse");
 
-    knot_vector = {0, 0.0506818, 0.0861591, 0.09, 0.141909, 0.202727, 0.405455, 1, 1, 1, 1};
-
-    double stddev = 1e-3;
-    auto obj_func = BSplineErr(lead_eigvector, stddev);
-
-    double val = obj_func(knot_vector);
-    double temp = -999;
-
-    for(int i = 0; i < 1e3; i++){
-        temp = obj_func(knot_vector);
-        if(temp > val || temp < val)
-            std::cout << temp << std::endl;
-    }
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    std::cout << "Duration: " << duration.count()*1e-6 << " seconds" << std::endl;
 
     return 0;
 }

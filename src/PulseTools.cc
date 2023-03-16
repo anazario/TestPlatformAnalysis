@@ -274,7 +274,7 @@ void sort_non_decreasing(std::vector<double>& v) {
               });
 }
 
-std::vector<int> find_matching_indices(const std::vector<double>& data, const std::vector<double>& values_to_check) {
+std::vector<int> FindMatchingIndices(const std::vector<double>& data, const std::vector<double>& values_to_check) {
     std::vector<int> matching_indices;
 
     // Loop through each value to check
@@ -425,7 +425,37 @@ std::vector<double> GetEigenvectorAtIndex(const std::vector<std::vector<double>>
     return eigenvector_stdvec;
 }
 
-std::function<double(double)> WindowFitErr(const std::function<std::vector<double>(const std::vector<double>&)> &interp_function,
+double AreaOutsideWindow(const std::vector<double>& amplitudes, const std::vector<double>& times, double t1, double t2) {
+
+    double area = 0.0;
+    double dt = times[1] - times[0]; // assume equal time step
+    double t_edge_min = times.back();
+    double t_edge_max = times.front();
+    int i_edge_min = -1.;
+    int i_edge_max = -1.;
+    int n = amplitudes.size();
+    for (int i = 0; i < n; i++) {
+        if (times[i] < t1 || times[i] > t2) {
+            area += amplitudes[i];
+        }
+        else{
+            if(t_edge_min >= times[i]) {
+                t_edge_min = times[i];
+                i_edge_min = i;
+            }
+            if(t_edge_max < times[i]) {
+                t_edge_max = times[i];
+                i_edge_max = i;
+            }
+        }
+    }
+    //Add the points at the edge of the time window (shannon-nyquist interpolation)
+    area += GetInterpolatedPoint(amplitudes, t1, 1/dt);
+    area += GetInterpolatedPoint(amplitudes, t2, 1/dt);
+    return area;
+}
+
+/*std::function<double(double)> WindowFitErr(const std::function<std::vector<double>(const std::vector<double>&)> &interp_function,
         //const std::tuple<double, double> time_edges,
                                            const std::vector<double> knot_vector,
                                            const double time_begin, const double time_end,
@@ -463,6 +493,34 @@ std::function<double(double)> WindowFitErr(const std::function<std::vector<doubl
 
         return error + penalty;
     };
+}*/
+
+std::function<double(double)> WindowFitErr(const std::vector<double> &knot_vector,
+                                           const std::vector<double> &samples,
+                                           const std::vector<double> &time,
+                                           const double window_size,
+                                           const double step_interp) {
+
+    //std::vector<double> const time = LinSpaceVec(time_begin, time_end, samples.size());
+    //auto fit = new BSpline(knot_vector);
+
+    return [&samples, &knot_vector, &time, window_size, step_interp](const double t) {
+
+        if(t < time.front() || t > time.back() - window_size)
+            throw std::runtime_error("input time is out of range for given interpolation vector.");
+
+        //std::vector<double> time = LinSpaceVec(time_begin, time_end, samples.size());
+
+        std::vector<double> window_seg = ArangeVec(t, t + window_size, step_interp);
+        std::vector<double> window_interp;// = interp_function(ArangeVec(t, t + window_size, step_interp));
+        ShannonNyquistInterp(time, samples, window_seg, window_interp);
+
+        BSpline fit(knot_vector);
+        fit.SplineLS(window_interp);
+        double error = fit.GetError();
+        const double penalty = AreaOutsideWindow(samples, time, t, t + window_size);
+        return error + penalty;
+    };
 }
 
 double WindowFitErr(const double t,
@@ -482,38 +540,38 @@ double WindowFitErr(const double t,
     std::vector<double> window_interp;// = interp_function(ArangeVec(t, t + window_size, step_interp));
     ShannonNyquistInterp(time_vec, samples, window_seg, window_interp);
 
-    auto start_time = std::chrono::high_resolution_clock::now();
+    //auto start_time = std::chrono::high_resolution_clock::now();
 
     BSpline fit(knot_vector);
     fit.SplineLS(window_interp);
     double error = fit.GetError();
 
-    auto end_time = std::chrono::high_resolution_clock::now();
+    //auto end_time = std::chrono::high_resolution_clock::now();
 
-    std::vector<double> pre_interp;
+    /*std::vector<double> pre_interp;
     ShannonNyquistInterp(time_vec, samples, ArangeVec(time_begin+step_interp, t, step_interp), pre_interp);
     std::vector<double> post_interp;
     ShannonNyquistInterp(time_vec, samples, ArangeVec(t+window_size+step_interp, time_end, step_interp), post_interp);
+*/
 
-
-    const double penalty = std::accumulate(post_interp.begin(), post_interp.end(), std::accumulate(pre_interp.begin(), pre_interp.end(), 0.));
+    const double penalty = AreaOutsideWindow(samples, time_vec, t, t + window_size);//std::accumulate(post_interp.begin(), post_interp.end(), std::accumulate(pre_interp.begin(), pre_interp.end(), 0.));
 
     //auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    //auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
-    std::cout << "Duration: " << duration.count()*1e-6 << " seconds" << std::endl;
+    //std::cout << "Duration: " << duration.count()*1e-6 << " seconds" << std::endl;
 
     return error + penalty;
 }
 
-double SumGauss(const std::vector<double>& inputVector, const double stddev) {
+double KnotSeparationPenalty(const std::vector<double>& knot_vector, const double stddev) {
     double sum = 0.0;
-    for (int i = 0; i < inputVector.size() - 1; i++) {
-        double diff = inputVector[i + 1] - inputVector[i];
-        double val = exp(-pow(diff/(2*stddev), 2));
-        sum += val/std::sqrt(2*M_PI*pow(stddev, 2));//exp(pow(diff, 2) / pow(stddev, 2));
-    }
+    double norm = std::sqrt(2*M_PI*pow(stddev, 2));
 
+    for (int i = 0; i < knot_vector.size() - 1; i++) {
+        double diff = knot_vector[i + 1] - knot_vector[i];
+        sum += exp(-pow(diff/(2*stddev), 2))/norm;
+    }
     return sum;
 }
 
@@ -522,17 +580,17 @@ std::function<double(std::vector<double>)> BSplineErr(const std::vector<double>&
         BSpline fit(knot_vector);
         fit.SplineLS(samples);
         double error = fit.GetError();
-        return error + SumGauss(knot_vector, stddev);
+        return error + KnotSeparationPenalty(knot_vector, stddev);
     };
 }
 
 std::vector<double> MinimizeKnots(const std::vector<double> &knot_vector, const std::vector<double> &samples,
                                   const int max_iter, const double stddev, const bool isRand){
 
-    int ndim = knot_vector.size();
+    int n_dim = knot_vector.size();
     auto error_func = BSplineErr(samples, stddev);
 
-    std::vector<int> fixed_idx = find_matching_indices(knot_vector, {knot_vector.front(), knot_vector.back()});
+    std::vector<int> fixed_idx = FindMatchingIndices(knot_vector, {knot_vector.front(), knot_vector.back()});
 
     std::vector<std::vector<double>> init_points;
     if(isRand)
@@ -540,15 +598,7 @@ std::vector<double> MinimizeKnots(const std::vector<double> &knot_vector, const 
     else
         init_points = CreateSimplex(knot_vector, fixed_idx);
 
-    std::cout << "Initial Simplex: " << std::endl;
-    for(auto vec : init_points){
-        for(auto point : vec)
-            std::cout << point << " ";
-        std::cout << std::endl;
-    }
-    std::cout << endl;
-
-    NelderMead fit(ndim, init_points, fixed_idx);
+    NelderMead fit(n_dim, init_points, fixed_idx);
     std::vector<double> optimized_knots = fit.optimize(error_func, max_iter);
 
     return optimized_knots;
@@ -611,7 +661,7 @@ double BrentsMethod(const std::function<double(double)> &func, double a, double 
 
         if (std::abs(x - xm) <= tol2 - 0.5 * (b - a)) {
             // Convergence
-            std::cout << "Converged in " << i+1 << " iterations." << std::endl;
+            //std::cout << "Converged in " << i+1 << " iterations." << std::endl;
             return x;
         }
 
@@ -624,9 +674,9 @@ double BrentsMethod(const std::function<double(double)> &func, double a, double 
                 p = -p;
             }
             q = fabs(q);
-            double etemp = e;
+            double e_temp = e;
             e = d;
-            if (fabs(p) >= fabs(0.5 * q * etemp) || p <= q * (a - x) || p >= q * (b - x)) {
+            if (fabs(p) >= fabs(0.5 * q * e_temp) || p <= q * (a - x) || p >= q * (b - x)) {
                 // use bisection instead
                 e = (x >= xm) ? a - x : b - x;
                 d = rho*e;
@@ -697,6 +747,7 @@ void ShannonNyquistInterp(const std::vector<double>& xdata, const std::vector<do
 
 // Function to compute the sinc interpolation of a signal using FFTW3
 std::vector<double> sincInterp(std::vector<double> x, std::vector<double> y, std::vector<double> t){
+
     // Determine the size of the input and output vectors
     const int N = x.size();
     const int M = t.size();
@@ -749,7 +800,6 @@ std::vector<double> sincInterp(std::vector<double> x, std::vector<double> y, std
 
     return t;
 }
-
 
 std::function<std::vector<double>(const std::vector<double>&)> ShannonNyquistInterp(
         const std::vector<double>& xdata,

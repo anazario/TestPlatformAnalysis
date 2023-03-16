@@ -83,6 +83,32 @@ void PlotGraph(TString name, TString xlabel, TString ylabel, int size, std::vect
   can.Close();
 }
 
+void PlotWaveform(const std::vector<double>& time, const std::vector<double>& waveform, const int waveform_id) {
+    // Create a TGraph object from the input data
+    TGraph* graph = new TGraph(time.size(), &time[0], &waveform[0]);
+
+    // Set the axis labels and titles
+    graph->GetXaxis()->SetTitle("time [ns]");
+    graph->GetXaxis()->CenterTitle();
+    graph->GetYaxis()->SetTitle("Amplitude [V]");
+    graph->GetYaxis()->CenterTitle();
+
+    // Create a canvas to draw the plot
+    TCanvas* canvas = new TCanvas("canvas", "canvas", 800, 600);
+    canvas->SetGrid();
+
+    // Draw the TGraph object on the canvas as a line plot
+    graph->Draw("AL");
+
+    // Save the plot to a file
+    canvas->SaveAs(("waveform"+to_string(waveform_id)+".pdf").c_str());
+
+    // Clean up memory
+    delete graph;
+    delete canvas;
+}
+
+
 TGraph* PlotScatter(TString name, TString xlabel, TString ylabel, std::vector<double> xVec, std::vector<double> yVec){
 
   int size = xVec.size();

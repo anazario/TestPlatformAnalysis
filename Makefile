@@ -39,7 +39,7 @@ h5test.x: $(SRCDIR)h5test.C $(OBJ_FILES) $(H_FILES)
 
 PulseFit.x: $(SRCDIR)PulseFit.C $(OBJ_FILES) $(H_FILES)
 	$(CXX) $(CXXFLAGS) -o PulseFit.x $(OUTOBJ)*.o $(GLIBS) $ $<
-	touch PulseFitest.x
+	touch PulseFit.x
 
 ProcessScan.x: $(SRCDIR)ProcessScan.C $(OBJ_FILES) $(H_FILES)
 	$(CXX) $(CXXFLAGS) -o ProcessScan.x $(OUTOBJ)*.o $(GLIBS) $ $<

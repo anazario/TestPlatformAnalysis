@@ -1,5 +1,5 @@
-#ifndef PULSETOOLS_H
-#define PULSETOOLS_H
+#ifndef PulseTools_H
+#define PulseTools_H
 
 #include <iostream>
 #include <map>
@@ -22,7 +22,6 @@
 #include "TEventList.h"
 #include "TColor.h"
 
-//#include "Pulse.h"
 #include "NelderMead.h"
 #include "BSpline.h"
 #include "Plot.h"
@@ -51,7 +50,7 @@ void SplitFolder(std::string& fullPath, std::string& innerMostName);
 bool Replace(std::string& str, const std::string& from, const std::string& to);
 
 void sort_non_decreasing(std::vector<double>& v);
-std::vector<int> find_matching_indices(const std::vector<double>& data, const std::vector<double>& values_to_check);
+std::vector<int> FindMatchingIndices(const std::vector<double>& data, const std::vector<double>& values_to_check);
 void copy_values(const std::vector<int>& indices, const std::vector<double>& source, std::vector<double>& dest);
 bool checkVector(const std::vector<double>& input_vec);
   
@@ -65,20 +64,27 @@ double BrentsMethod(const std::function<double(double)> &func, double a, double 
 void FillDensityMatrix(std::vector<std::vector<double>> &density_matrix, const std::vector<double> &sample);
 std::vector<double> GetEigenvectorAtIndex(const std::vector<std::vector<double>>& matrix, int index = 0);
 
-double SumGauss(const std::vector<double>& inputVector, double stddev);
+double KnotSeparationPenalty(const std::vector<double>& knot_vector, double stddev);
 std::function<double(std::vector<double>)> BSplineErr(const std::vector<double>& samples, double stddev);
-std::function<double(double)> WindowFitErr(const std::function<std::vector<double>(const std::vector<double>&)> &interp_function,
+double AreaOutsideWindow(const std::vector<double>& amplitudes, const std::vector<double>& times, double t1, double t2);
+/*std::function<double(double)> WindowFitErr(const std::function<std::vector<double>(const std::vector<double>&)> &interp_function,
                                            std::vector<double> knot_vector,
                                            double time_begin, double time_end,
+                                           double window_size=25,
+                                           double step_interp=1e-3);*/
+
+std::function<double(double)> WindowFitErr(const std::vector<double> &knot_vector,
+                                           const std::vector<double> &samples,
+                                           const std::vector<double> &time,
                                            double window_size=25,
                                            double step_interp=1e-3);
 
 double WindowFitErr(double t,
                     std::vector<double> knot_vector,
-                    std::vector<double> &samples,
+                    const std::vector<double> &samples,
                     double time_begin, double time_end,
-                    double window_size=25,
-                    double step_interp=1e-3);
+                    double window_size= 25,
+                    double step_interp= 1e-3);
 
 
 std::vector<double> sincInterp(std::vector<double> x, std::vector<double> y, std::vector<double> t);

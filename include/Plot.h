@@ -18,5 +18,6 @@ void CMSmark(TString plotTitle);
 void Plot1D(TH1D* hist, const TString name, const TString xlabel, const TString ylabel, const bool isLog);
 void Plot2D(TH2D* hist, const TString name, const TString xlabel, const TString ylabel, const bool isLog);
 void PlotGraph(TString name, TString xlabel, TString ylabel, int size, std::vector<double> xVec, std::vector<double> yVec);
+void PlotWaveform(const std::vector<double>& time, const std::vector<double>& waveform, const int waveform_id);
 
 TGraph* PlotScatter(TString name, TString xlabel, TString ylabel, std::vector<double> xVec, std::vector<double> yVec);
