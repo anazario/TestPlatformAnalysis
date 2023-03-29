@@ -60,11 +60,12 @@ int main(int argc, char* argv[]) {
     std::vector<double> interpolated_waveform(interpolation_size, 0.);
     std::vector<double> interpolation_time;
     //std::vector<double> knot_vector = {0, 0.0566526, 0.0706713, 0.118964, 0.13563, 0.257123, 0.507515, 1, 1, 1, 1 };
-    std::vector<double> knot_vector = {0., 0.05, 0.085, 0.1, 0.14, 0.2, 0.4, 1., 1., 1., 1.};
+    //std::vector<double> knot_vector = {0., 0.05, 0.085, 0.1, 0.14, 0.2, 0.4, 1., 1., 1., 1.};
     //std::vector<double> knot_vector = {0, 0.0507, 0.0862, 0.09, 0.142, 0.203, 0.405, 1, 1, 1, 1};
-    //std::vector<double> knot_vector = {0, 0.0089733, 0.0609578, 0.101097, 0.153922, 0.305948, 0.490758, 1, 1, 1, 1};
+    std::vector<double> knot_vector = {0, 0.0089733, 0.0609578, 0.101097, 0.153922, 0.305948, 0.490758, 1, 1, 1, 1};
     std::vector<double> spline;
 
+    std::vector<std::vector<double> > coefficients(num_entries, std::vector<double>(knot_vector.size()-2, 0.));
     std::vector<std::vector<double> > density_matrix(interpolation_size, std::vector<double>(interpolation_size, 0.));
 
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -103,28 +104,22 @@ int main(int argc, char* argv[]) {
 
         //make interpolation for cfd time
         double cfd_time = -1.;
-        if(cfd_fraction > 0.05) {
+        if(cfd_fraction > 0.) {
             interpolation_time = LinSpaceVec(max_time - 4., max_time + 10., interpolation_size);
             interpolated_waveform = interp_function(interpolation_time);
             cfd_time = CalculateCFDTime(interpolated_waveform, interpolation_time, cfd_fraction);
+
+            if(!isnan(cfd_time))
+                interpolation_time = LinSpaceVec(cfd_time - 2., cfd_time + time_window - 2., interpolation_size);
+            else
+                continue;
         }
-
-        //time fit over window
-        /*auto time_func = WindowFitErr(knot_vector, waveform, time,
-                                      time_window, 0.15);
-        double fit_time = BrentsMethod(time_func, time_begin, time_end-time_window);*/
-
-        //make interpolation window at CFD time or time from fit
-        if(!isnan(cfd_time) && cfd_fraction > 0.)
-            interpolation_time = LinSpaceVec(cfd_time - 2., cfd_time + time_window - 2., interpolation_size);
-        else if(cfd_fraction < 0.) {
+        else {//if cfd fraction is not specified use brent's method to find time
             auto time_func = WindowFitErr(knot_vector, waveform, time,
                                           time_window, 0.15);
             double fit_time = BrentsMethod(time_func, time_begin, time_end - time_window);
             interpolation_time = LinSpaceVec(fit_time, fit_time + time_window, interpolation_size);
         }
-        else
-            continue;
 
         bool noNans = !std::any_of(interpolation_time.begin(), interpolation_time.end(),
                                    [](double d) { return std::isnan(d); });

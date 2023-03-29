@@ -26,12 +26,16 @@ std::vector<double> BSpline::SplineLS(const std::vector<double> &samples){
   int sample_size = int(samples.size());
 
   dmat collocation_matrix = CollocationMatrix(sample_size);
-  dvec fit_coeff = CoeffLeastSquare(samples, collocation_matrix);
+  fit_coeff_ = CoeffLeastSquare(samples, collocation_matrix);
 
   dvec spline;
-  SplineFunction(spline, samples, fit_coeff, collocation_matrix);
+  SplineFunction(spline, samples, fit_coeff_, collocation_matrix);
 
   return {spline.begin(), spline.end()};
+}
+
+std::vector<double> BSpline::GetFitCoefficients() {
+    return {fit_coeff_.begin(), fit_coeff_.end()};
 }
 
 //private
@@ -104,11 +108,10 @@ dvec& BSpline::SplineFunction(dvec &spline, const dvec &samples, const dvec &coe
   return spline;
 }
 
-
 void PlotSplineFit(const std::vector<double> &waveform,
-		   const std::vector<double> &spline,
-		   const std::vector<double> &knot_vector,
-		   const std::string &name){
+                   const std::vector<double> &spline,
+                   const std::vector<double> &knot_vector,
+                   const std::string &name){
 
   std::vector<int> colors = {kBlack, kOrange+1};
 

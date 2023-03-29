@@ -123,3 +123,51 @@ TGraph* PlotScatter(TString name, TString xlabel, TString ylabel, std::vector<do
 
   return tg;
 }
+
+void makeScatterPlot(const std::vector<double> &x_signal, const std::vector<double> &x_background,
+                     const std::vector<double> &y_signal, const std::vector<double> &y_background,
+                     std::string name, std::string xlabel, std::string ylabel) {
+    // Create a new TCanvas and set its title
+    TCanvas* canvas = new TCanvas(name.c_str(), name.c_str(), 800, 600);
+    canvas->SetTitle(name.c_str());
+
+    // Create a TGraph object for the signal data and set its color to green
+    TGraph* signal = new TGraph(x_signal.size(), &x_signal[0], &y_signal[0]);
+    signal->SetMarkerStyle(20);
+    signal->SetMarkerSize(0.8);
+    signal->SetMarkerColor(kGreen);
+
+    // Create a TGraph object for the background data and set its color to blue
+    TGraph* background = new TGraph(x_background.size(), &x_background[0], &y_background[0]);
+    background->SetMarkerStyle(20);
+    background->SetMarkerSize(0.8);
+    background->SetMarkerColor(kBlue);
+
+    // Create a legend and add entries for the signal and background TGraphs
+    TLegend* legend = new TLegend(0.7, 0.7, 0.9, 0.9);
+    legend->SetFillColor(kWhite);
+    legend->SetBorderSize(0);
+    legend->AddEntry(signal, "Signal", "p");
+    legend->AddEntry(background, "Background", "p");
+
+    // Draw the signal and background TGraphs on the canvas
+    signal->Draw("AP");
+    background->Draw("P same");
+
+    // Set the labels for the x and y axes
+    signal->GetXaxis()->SetTitle(xlabel.c_str());
+    signal->GetYaxis()->SetTitle(ylabel.c_str());
+
+    // Add the legend to the canvas
+    legend->Draw();
+
+    // Update the canvas and save it as a PDF file
+    canvas->Update();
+    canvas->SaveAs((name + ".pdf").c_str());
+
+    // Free memory allocated for TGraphs, TCanvas, and TLegend objects
+    delete signal;
+    delete background;
+    delete legend;
+    delete canvas;
+}

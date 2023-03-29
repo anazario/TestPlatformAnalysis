@@ -1,5 +1,5 @@
-#ifndef BSPLINE_H
-#define BSPLINE_H
+#ifndef BSpline_h
+#define BSpline_h
 
 #include <vector>
 #include <armadillo>
@@ -17,8 +17,7 @@ class BSpline{
 
   double GetError() const;
   std::vector<double> SplineLS(const std::vector<double> &samples);
-
-  //void Plot() const;
+  std::vector<double> GetFitCoefficients();
   
 private:
 
